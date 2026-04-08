@@ -15,11 +15,11 @@ export default function Home() {
           <Code2 className="text-blue-500" />
           interviewPrep
         </div>
-        <div className="ml-auto flex items-center gap-4">
-          <button className="text-sm font-medium text-slate-300 hover:text-white transition-colors">Log in</button>
-          <button className="text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg transition-all">
-            Get Started
-          </button>
+        <div className="flex items-center gap-4 ml-auto">
+           <Link to="/login" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">Log in</Link>
+           <Link to="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
+             Get Started
+           </Link>
         </div>
       </nav>
 

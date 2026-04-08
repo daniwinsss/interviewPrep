@@ -1,12 +1,10 @@
+import 'dotenv/config';
 import { Worker } from 'bullmq';
 import IORedis from 'ioredis';
-import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import { executionService } from './src/services/executionService.js';
 import Submission from './src/models/Submission.js';
 import Problem from './src/models/Problem.js';
-
-dotenv.config();
 
 const connection = new IORedis(process.env.REDIS_URI || 'redis://localhost:6379', { maxRetriesPerRequest: null });
 
