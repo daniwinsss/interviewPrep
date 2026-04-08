@@ -1,25 +1,50 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Card, CardHeader } from '../components/Card';
 import { AccentHeading } from '../components/AccentHeading';
 import { HeroVisual } from '../components/HeroVisual';
-import { Terminal, Bot, Database, Code2, ArrowRight } from 'lucide-react';
+import { Terminal, Bot, Database, Code2, ArrowRight, LogOut } from 'lucide-react';
 
 export default function Home() {
   const navigate = useNavigate();
+  const [isLogged, setIsLogged] = useState(false);
+
+  useEffect(() => {
+    setIsLogged(!!localStorage.getItem('token'));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setIsLogged(false);
+    window.location.reload(); // Force refresh to reset UI state
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 font-sans selection:bg-blue-500/30">
       {/* Navigation */}
-      <nav className="fixed top-0 inset-x-0 h-16 border-b border-slate-800/50 bg-slate-950/50 backdrop-blur-md z-50 flex items-center px-6">
-        <div className="flex items-center gap-2 text-xl font-bold text-slate-100">
+      <nav className="fixed top-0 left-0 right-0 h-16 px-6 border-b border-white/5 bg-slate-900/60 backdrop-blur-xl flex items-center z-50">
+        <div className="flex items-center gap-3 font-semibold text-lg text-slate-100">
           <Code2 className="text-blue-500" />
           interviewPrep
         </div>
         <div className="flex items-center gap-4 ml-auto">
-           <Link to="/login" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">Log in</Link>
-           <Link to="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
-             Get Started
-           </Link>
+           {isLogged ? (
+             <button 
+               onClick={handleLogout} 
+               type="button"
+               className="bg-slate-800 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/20 hover:text-red-400 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
+             >
+               <LogOut className="w-4 h-4" />
+               Log out
+             </button>
+           ) : (
+             <>
+               <Link to="/login" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">Log in</Link>
+               <Link to="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
+                 Get Started
+               </Link>
+             </>
+           )}
         </div>
       </nav>
 
@@ -40,11 +65,11 @@ export default function Home() {
             </p>
             
             <div className="flex gap-4 mt-4">
-               <button className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/20">
+               <Link to="/interview" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/20">
                  Start practicing
                  <ArrowRight className="w-4 h-4" />
-               </button>
-               <Link to="/problems/1" className="px-6 py-3 rounded-lg flex items-center justify-center font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all">
+               </Link>
+               <Link to="/problems" className="px-6 py-3 rounded-lg flex items-center justify-center font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all">
                  View problems
                </Link>
             </div>
@@ -63,7 +88,7 @@ export default function Home() {
            </div>
            
            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Link to="/problems/1" className="block focus:outline-none">
+              <Link to="/problems" className="block focus:outline-none">
                 <Card>
                    <CardHeader 
                      title="Online Judge" 

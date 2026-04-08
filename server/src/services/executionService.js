@@ -1,88 +1,122 @@
-import { spawn, exec } from 'child_process';
+import { exec } from 'child_process';
+import { writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
+import path from 'path';
+import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Local execution service for Java, Python, and C++.
+ * Uses system-installed compilers/interpreters — no Docker required.
+ * 
+ * Prerequisites:
+ *   - Python: python3 or python must be on PATH
+ *   - Java:   java + javac must be on PATH (JDK installed)
+ *   - C++:    g++ must be on PATH (GCC/MinGW on Windows)
+ */
 export const executionService = {
-  /**
-   * Run code in an isolated Docker container with strict resource limits.
-   * Uses standard input mapped directly into the VM to avoid complex volume mounts.
-   *
-   * @param {string} code - The user code to run
-   * @param {string} language - javascript | python
-   * @param {number} timeoutMs - Max execution time in ms (default 2000)
-   * @returns {Promise<{stdout: string, stderr: string, error: string|null, status: string, time: number}>}
-   */
-  async runCode({ code, language, timeoutMs = 2000 }) {
-    return new Promise((resolve) => {
-      const images = {
-        javascript: { image: 'node:20-alpine', cmd: ['node', '-'] },
-        python: { image: 'python:3.11-alpine', cmd: ['python', '-'] },
-      };
+  async runCode({ code, language, stdin = '', timeoutMs = 3000 }) {
+    const id = uuidv4().replace(/-/g, '');
+    const tmpDir = path.join(os.tmpdir(), `usaco_${id}`);
 
-      if (!images[language]) {
-        return resolve({ stdout: '', stderr: '', error: 'Unsupported language', status: 'error', time: 0 });
+    try {
+      mkdirSync(tmpDir, { recursive: true });
+
+      let result;
+      switch (language) {
+        case 'python':
+          result = await runPython(code, stdin, tmpDir, timeoutMs);
+          break;
+        case 'java':
+          result = await runJava(code, stdin, tmpDir, timeoutMs);
+          break;
+        case 'cpp':
+          result = await runCpp(code, stdin, tmpDir, timeoutMs);
+          break;
+        default:
+          result = { stdout: '', stderr: 'Unsupported language', error: 'Unsupported language', status: 'error', time: 0 };
       }
-
-      const { image, cmd } = images[language];
-      const containerName = `exec_${uuidv4()}`;
-      
-      const startTime = Date.now();
-
-      // Enforce: No network, max 256m memory, half CPU core limit
-      const dockerArgs = [
-        'run', '--rm', '-i',
-        '--name', containerName,
-        '--network', 'none',
-        '--memory', '256m',
-        '--cpus', '0.5',
-        image,
-        ...cmd
-      ];
-
-      const child = spawn('docker', dockerArgs);
-
-      let stdout = '';
-      let stderr = '';
-      let isTimeout = false;
-
-      child.stdout.on('data', (data) => { stdout += data.toString(); });
-      child.stderr.on('data', (data) => { stderr += data.toString(); });
-
-      // Timeout safety switch to forcibly kill the container
-      const timeoutHandle = setTimeout(() => {
-        isTimeout = true;
-        // Kill the container synchronously 
-        exec(`docker kill ${containerName}`, () => {
-          resolve({
-            stdout,
-            stderr: 'Execution Time Limit Exceeded (2s)',
-            error: 'Time Limit Exceeded',
-            status: 'tle',
-            time: timeoutMs
-          });
-        });
-      }, timeoutMs);
-
-      child.on('close', (code) => {
-        if (isTimeout) return; // Promise already resolved via timeout
-        
-        clearTimeout(timeoutHandle);
-        const timeTaken = Date.now() - startTime;
-        
-        if (code !== 0) {
-          return resolve({ stdout, stderr, error: 'Runtime Error', status: 'error', time: timeTaken });
-        }
-
-        resolve({ stdout, stderr, error: null, status: 'success', time: timeTaken });
-      });
-
-      child.on('error', (err) => {
-         clearTimeout(timeoutHandle);
-         resolve({ stdout: '', stderr: err.message, error: 'System Error', status: 'error', time: 0 });
-      });
-
-      // Write the code to stdin to execute
-      child.stdin.write(code);
-      child.stdin.end();
-    });
+      return result;
+    } catch (err) {
+      return { stdout: '', stderr: err.message, error: 'System Error', status: 'error', time: 0 };
+    } finally {
+      // Clean up temp directory
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+    }
   }
 };
+
+function runCommand(cmd, stdin, timeoutMs) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const child = exec(cmd, { timeout: timeoutMs, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
+      const time = Date.now() - start;
+      if (error && error.killed) {
+        resolve({ stdout, stderr: 'Time Limit Exceeded', error: 'TLE', status: 'tle', time });
+      } else if (error) {
+        resolve({ stdout, stderr, error: error.message, status: 'error', time });
+      } else {
+        resolve({ stdout, stderr, error: null, status: 'success', time });
+      }
+    });
+
+    if (stdin && child.stdin) {
+      child.stdin.write(stdin);
+      child.stdin.end();
+    }
+  });
+}
+
+async function runPython(code, stdin, tmpDir, timeoutMs) {
+  const filePath = path.join(tmpDir, 'solution.py');
+  writeFileSync(filePath, code, 'utf-8');
+  
+  // Try python3 first, fall back to python
+  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+  const cmd = `${pythonCmd} "${filePath}"`;
+  return runCommand(cmd, stdin, timeoutMs);
+}
+
+async function runJava(code, stdin, tmpDir, timeoutMs) {
+  // Extract the public class name from the code, defaulting to Main
+  const classNameMatch = code.match(/public\s+class\s+(\w+)/);
+  const className = classNameMatch ? classNameMatch[1] : 'Main';
+  
+  const filePath = path.join(tmpDir, `${className}.java`);
+  writeFileSync(filePath, code, 'utf-8');
+
+  // Step 1: Compile
+  const compileResult = await runCommand(`javac "${filePath}"`, '', 15000);
+  if (compileResult.status === 'error') {
+    return {
+      ...compileResult,
+      error: 'Compilation Error',
+      status: 'error',
+      stderr: `Compilation Error:\n${compileResult.stderr}`
+    };
+  }
+
+  // Step 2: Run with memory limit and security policy
+  const runCmd = `java -cp "${tmpDir}" -Xmx256m -Xss64m ${className}`;
+  return runCommand(runCmd, stdin, timeoutMs);
+}
+
+async function runCpp(code, stdin, tmpDir, timeoutMs) {
+  const srcPath = path.join(tmpDir, 'solution.cpp');
+  const exePath = path.join(tmpDir, process.platform === 'win32' ? 'solution.exe' : 'solution');
+  writeFileSync(srcPath, code, 'utf-8');
+
+  // Step 1: Compile
+  const compileResult = await runCommand(`g++ -O2 -o "${exePath}" "${srcPath}"`, '', 15000);
+  if (compileResult.status === 'error') {
+    return {
+      ...compileResult,
+      error: 'Compilation Error',
+      status: 'error',
+      stderr: `Compilation Error:\n${compileResult.stderr}`
+    };
+  }
+
+  // Step 2: Run
+  const runCmd = `"${exePath}"`;
+  return runCommand(runCmd, stdin, timeoutMs);
+}

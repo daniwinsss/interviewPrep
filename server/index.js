@@ -41,27 +41,19 @@ app.use('/api/ai/interview', interviewRoutes);
 // Placeholder Routes
 app.get('/health', (req, res) => res.send('API is running'));
 
-import { MongoMemoryServer } from 'mongodb-memory-server';
-
-async function connectDB() {
-  let uri = process.env.MONGO_URI;
-  if (!uri || uri.includes('localhost')) {
-    console.log('No remote MONGO_URI found. Starting local in-memory MongoDB for testing...');
-    try {
-      const mongoServer = await MongoMemoryServer.create();
-      uri = mongoServer.getUri();
-    } catch (e) {
-      console.warn('Could not launch memory server. Make sure it is installed.');
-    }
-  }
-
-  mongoose.connect(uri || 'mongodb://localhost:27017/interviewPrep')
-    .then(() => console.log('MongoDB Connected to', uri))
-    .catch((err) => console.error('MongoDB Connection Error:', err));
-}
-
 connectDB();
 
+async function connectDB() {
+  const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/interviewPrep';
+  try {
+    await mongoose.connect(uri);
+    console.log('✅ MongoDB Connected to', uri.includes('@') ? uri.split('@')[1] : uri);
+  } catch (err) {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    process.exit(1);
+  }
+}
+
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });

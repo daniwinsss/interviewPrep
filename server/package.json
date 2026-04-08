@@ -9,6 +9,7 @@
     "dev": "nodemon index.js",
     "worker": "node worker.js",
     "worker:dev": "nodemon worker.js",
+    "scrape": "node scripts/scrapeUsaco.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,7 +17,10 @@
   "license": "ISC",
   "dependencies": {
     "@google/genai": "^1.48.0",
+    "adm-zip": "^0.5.16",
+    "axios": "^1.9.0",
     "bullmq": "^5.73.1",
+    "cheerio": "^1.0.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
@@ -24,7 +28,8 @@
     "ioredis": "^5.10.1",
     "jsonwebtoken": "^9.0.3",
     "mongodb-memory-server": "^11.0.1",
-    "mongoose": "^9.4.1"
+    "mongoose": "^9.4.1",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

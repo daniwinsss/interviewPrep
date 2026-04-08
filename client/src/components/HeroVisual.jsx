@@ -2,56 +2,63 @@ import React from 'react';
 
 export function HeroVisual() {
   return (
-    <div className="relative w-full aspect-square max-w-lg mx-auto">
+    <div className="relative w-[110%] md:w-full aspect-[4/3] max-w-[540px] mx-auto md:mr-[-10%] translate-x-4 md:translate-x-0">
       {/* Decorative background glow */}
-      <div className="absolute inset-0 bg-blue-500/20 blur-[100px] rounded-full mix-blend-screen" />
+      <div className="absolute inset-0 bg-blue-500/15 blur-[120px] rounded-full mix-blend-screen" />
       
-      {/* Wireframe UI Card Container */}
-      <div className="absolute inset-4 glass-card border-slate-700/50 shadow-2xl overflow-hidden flex flex-col">
-        {/* Fake Header */}
-        <div className="h-12 border-b border-slate-800 flex items-center px-4 gap-2">
-          <div className="w-3 h-3 rounded-full bg-slate-700" />
-          <div className="w-3 h-3 rounded-full bg-slate-700" />
-          <div className="w-3 h-3 rounded-full bg-slate-700" />
+      {/* Main Wireframe Window */}
+      <div className="absolute inset-0 bg-[#0a0f1c]/90 backdrop-blur-md border border-slate-700/60 shadow-2xl overflow-hidden flex flex-col rounded-xl">
+        
+        {/* Fake Mac Window Header */}
+        <div className="h-10 border-b border-slate-800/80 bg-[#0f1523] flex items-center px-4 gap-2 shrink-0">
+          <div className="w-3 h-3 rounded-full bg-slate-600/80" />
+          <div className="w-3 h-3 rounded-full bg-slate-600/80" />
+          <div className="w-3 h-3 rounded-full bg-slate-600/80" />
         </div>
         
-        {/* Fake Content area */}
-        <div className="flex-1 p-6 flex flex-col gap-6">
-          {/* Code block skeleton */}
-          <div className="w-full h-32 bg-slate-950/80 rounded border border-slate-800 p-4 flex flex-col gap-2">
-            <div className="h-2 w-1/3 bg-blue-500/80 rounded" />
-            <div className="h-2 w-1/2 bg-slate-700 rounded ml-4" />
-            <div className="h-2 w-1/4 bg-slate-700 rounded ml-4" />
-            <div className="h-2 w-1/5 bg-slate-600 rounded" />
+        {/* Content Container */}
+        <div className="flex-1 p-6 flex flex-col gap-5">
+          
+          {/* Top Large Box */}
+          <div className="relative w-full bg-[#070b15] border border-slate-700/40 rounded-xl p-6 flex flex-col gap-4 shadow-inner">
+             <div className="h-3 w-1/3 bg-blue-500 rounded-full" />
+             <div className="flex flex-col gap-2.5 mt-2">
+                <div className="h-2.5 w-4/5 bg-slate-700 rounded-full" />
+                <div className="h-2.5 w-3/5 bg-slate-700 rounded-full" />
+                <div className="h-2.5 w-1/4 bg-slate-700 rounded-full" />
+             </div>
+             
+             {/* Floating Checkmark Element */}
+             <div className="absolute -right-6 top-14 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl flex items-center gap-4 w-[180px] animate-pulse" style={{animationDuration: '4s'}}>
+               <div className="w-8 h-8 shrink-0 rounded-full bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                 </svg>
+               </div>
+               <div className="h-2.5 w-full bg-slate-600 rounded-full" />
+             </div>
           </div>
 
-          {/* Metrics skeleton */}
-          <div className="flex gap-4">
-            <div className="flex-1 h-20 bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-              <div className="h-2 w-1/2 bg-slate-600 rounded mb-4" />
-              <div className="h-4 w-3/4 bg-blue-400 rounded" />
+          {/* Middle: Two Split Boxes */}
+          <div className="grid grid-cols-2 gap-5 min-h-[90px]">
+            <div className="h-full bg-[#070b15] border border-slate-700/40 rounded-xl p-5 flex flex-col justify-end gap-4 relative overflow-hidden group">
+               <div className="h-2 w-1/2 bg-slate-700 rounded-full" />
+               <div className="h-4 w-full bg-blue-400 rounded-full" />
+               <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
-            <div className="flex-1 h-20 bg-slate-800/50 rounded-lg border border-slate-700/50 p-4">
-               <div className="h-2 w-1/2 bg-slate-600 rounded mb-4" />
-              <div className="h-4 w-3/4 bg-blue-400 rounded" />
+            <div className="h-full bg-[#070b15] border border-slate-700/40 rounded-xl p-5 flex flex-col justify-end gap-4 relative overflow-hidden group">
+               <div className="h-2 w-1/2 bg-slate-700 rounded-full" />
+               <div className="h-4 w-full bg-blue-400 rounded-full" />
+               <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
 
-          {/* Chat skeleton */}
-           <div className="w-full flex-1 bg-slate-900/80 rounded border border-slate-800 p-4 flex flex-col justify-end gap-3">
-             <div className="self-end h-8 w-2/3 bg-blue-600/30 border border-blue-500/30 rounded-2xl rounded-tr-sm" />
-             <div className="self-start h-12 w-3/4 bg-slate-800 border border-slate-700 rounded-2xl rounded-tl-sm" />
-           </div>
-        </div>
-      </div>
-
-      {/* Floating Elements */}
-      <div className="absolute -right-8 top-1/4 p-4 glass-card border-blue-500/30 bg-slate-900/90 animate-bounce" style={{animationDuration: '3s'}}>
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+          {/* Bottom: Wide Pill Elements Box */}
+          <div className="flex-1 w-full bg-[#070b15] border border-slate-700/40 rounded-xl p-5 flex flex-col gap-4 overflow-hidden relative">
+             <div className="w-[85%] h-8 bg-blue-900 rounded-r-full absolute left-0 top-6 border-y border-r border-blue-800/60" />
+             <div className="w-[70%] h-8 bg-slate-800 rounded-l-full absolute right-0 bottom-6 border-y border-l border-slate-700/50" />
           </div>
-          <div className="h-2 w-16 bg-slate-300 rounded" />
+
         </div>
       </div>
     </div>
