@@ -9,6 +9,7 @@ const problemSchema = new mongoose.Schema({
   source: { type: String, enum: ['custom', 'usaco'], default: 'custom' },
   usacoCpid: { type: Number },
   division: { type: String, enum: ['Bronze', 'Silver', 'Gold', 'Platinum', 'Custom'] },
+  topic: { type: String, default: 'Misc' },
   contest: { type: String }, // e.g. "2023 February Bronze"
   timeLimit: { type: Number, default: 2000 }, // ms
   memoryLimit: { type: Number, default: 256 }, // MB

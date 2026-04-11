@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import 'katex/dist/katex.min.css';
 import Home from './pages/Home';
 import CodeEditor from './pages/CodeEditor';
 import ProblemsList from './pages/ProblemsList';

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { Play, Send, Code2, ArrowLeft, Clock, MemoryStick, CheckCircle, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import renderMathInElement from 'katex/dist/contrib/auto-render';
 
 const API = 'http://localhost:5000/api/judge';
 
@@ -36,6 +37,23 @@ export default function CodeEditor() {
   const [isRunning, setIsRunning] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('description'); // description | results
+  const descriptionRef = useRef(null);
+
+  // Auto-render math when problem content or tab changes
+  useEffect(() => {
+    if (activeTab === 'description' && descriptionRef.current) {
+      renderMathInElement(descriptionRef.current, {
+        delimiters: [
+          { left: '$$', right: '$$', display: true },
+          { left: '$', right: '$', display: false },
+          { left: '\\(', right: '\\)', display: false },
+          { left: '\\[', right: '\\]', display: true },
+        ],
+        ignoredTags: ["script", "noscript", "style", "textarea", "code", "option"],
+        throwOnError: false,
+      });
+    }
+  }, [problem, activeTab, loading]);
 
   // Load problem from API
   useEffect(() => {
@@ -190,7 +208,7 @@ export default function CodeEditor() {
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto p-6" ref={descriptionRef}>
             {activeTab === 'description' ? (
               <div className="flex flex-col gap-6">
                 {loading ? (
@@ -220,7 +238,6 @@ export default function CodeEditor() {
                       )}
                     </div>
 
-                    {/* Problem Statement */}
                     <div
                       className="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed"
                       dangerouslySetInnerHTML={{ __html: problem.description }}
@@ -228,20 +245,33 @@ export default function CodeEditor() {
 
                     {/* Sample Test Cases */}
                     {problem.testCases?.length > 0 && (
-                      <div className="flex flex-col gap-4 mt-4">
-                        <h3 className="font-semibold text-slate-200">Sample Test Cases</h3>
-                        {problem.testCases.map((tc, i) => (
-                          <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3 font-mono text-sm">
-                            <div>
-                              <span className="text-slate-500 text-xs uppercase tracking-wide">Input</span>
-                              <pre className="text-slate-300 mt-1 whitespace-pre-wrap">{tc.input}</pre>
+                      <div className="flex flex-col gap-4 mt-8">
+                        <h3 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-blue-500" />
+                          Sample Test Cases
+                        </h3>
+                        <div className="grid grid-cols-1 gap-4">
+                          {problem.testCases.map((tc, i) => (
+                            <div key={i} className="group flex flex-col gap-0 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/40">
+                              <div className="flex divide-x divide-slate-800 border-b border-slate-800 bg-slate-900/80">
+                                <div className="flex-1 p-3">
+                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Input</span>
+                                </div>
+                                <div className="flex-1 p-3">
+                                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest pl-1">Output</span>
+                                </div>
+                              </div>
+                              <div className="flex divide-x divide-slate-800 h-full min-h-[80px]">
+                                <div className="flex-1 p-4 font-mono text-sm text-slate-300 bg-slate-950/30">
+                                  <pre className="whitespace-pre-wrap break-all">{tc.input}</pre>
+                                </div>
+                                <div className="flex-1 p-4 font-mono text-sm text-green-400 bg-slate-950/30">
+                                  <pre className="whitespace-pre-wrap break-all">{tc.output}</pre>
+                                </div>
+                              </div>
                             </div>
-                            <div>
-                              <span className="text-slate-500 text-xs uppercase tracking-wide">Expected Output</span>
-                              <pre className="text-slate-300 mt-1 whitespace-pre-wrap">{tc.output}</pre>
-                            </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     )}
 

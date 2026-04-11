@@ -29,7 +29,7 @@ router.get('/problems', async (req, res) => {
     if (req.query.source)   filter.source   = req.query.source;
     if (req.query.difficulty) filter.difficulty = req.query.difficulty;
 
-    const problems = await Problem.find(filter, 'title difficulty division source contest usacoCpid languages createdAt');
+    const problems = await Problem.find(filter, 'title difficulty division topic source contest usacoCpid languages createdAt');
     res.json(problems);
   } catch (err) {
     res.status(500).json({ error: err.message });
