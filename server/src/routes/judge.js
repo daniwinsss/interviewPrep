@@ -7,6 +7,28 @@ import { executionService } from '../services/executionService.js';
 
 const router = express.Router();
 
+function isVisibleProblem(problem) {
+  const description = problem.description || '';
+  const plainText = description.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  const hasFallbackDescription = /See problem at usaco\.org/i.test(description);
+  const hasUsableTests = Array.isArray(problem.testCases)
+    && problem.testCases.some(tc => tc?.input?.trim() && tc?.output?.trim());
+
+  return !hasFallbackDescription && plainText.length >= 120 && hasUsableTests;
+}
+
+function sanitizeExpectedOutput(output = '') {
+  const normalized = String(output).replace(/\r\n/g, '\n').trim();
+  if (!normalized) return '';
+
+  const paragraphs = normalized.split(/\n\s*\n/);
+  const firstBlock = paragraphs[0]?.trim() || normalized;
+
+  // If explanatory prose was scraped after the actual sample output,
+  // keep only the first output block before the blank line.
+  return firstBlock;
+}
+
 // Redis / BullMQ Queue — gracefully optional
 let executionQueue = null;
 try {
@@ -29,8 +51,27 @@ router.get('/problems', async (req, res) => {
     if (req.query.source)   filter.source   = req.query.source;
     if (req.query.difficulty) filter.difficulty = req.query.difficulty;
 
-    const problems = await Problem.find(filter, 'title difficulty division topic source contest usacoCpid languages createdAt');
-    res.json(problems);
+    const problems = await Problem.find(
+      filter,
+      'title difficulty division topic source contest usacoCpid languages createdAt description testCases'
+    );
+
+    const visibleProblems = problems
+      .filter(isVisibleProblem)
+      .map(problem => ({
+        _id: problem._id,
+        title: problem.title,
+        difficulty: problem.difficulty,
+        division: problem.division,
+        topic: problem.topic,
+        source: problem.source,
+        contest: problem.contest,
+        usacoCpid: problem.usacoCpid,
+        languages: problem.languages,
+        createdAt: problem.createdAt
+      }));
+
+    res.json(visibleProblems);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -44,8 +85,18 @@ router.get('/problems/:id', async (req, res) => {
     if (!problem) return res.status(404).json({ error: 'Problem not found' });
     
     const problemObj = problem.toObject();
+    const totalTestCaseCount = Array.isArray(problemObj.testCases) ? problemObj.testCases.length : 0;
+    const visibleTestCases = problemObj.testCases.filter(tc => !tc.isHidden);
+
     // Filter to only expose visible test cases
-    problemObj.testCases = problemObj.testCases.filter(tc => !tc.isHidden);
+    problemObj.testCases = visibleTestCases
+      .map(tc => ({
+        ...tc,
+        output: sanitizeExpectedOutput(tc.output)
+      }));
+    problemObj.sampleTestCaseCount = problemObj.testCases.length;
+    problemObj.hiddenTestCaseCount = totalTestCaseCount - problemObj.sampleTestCaseCount;
+    problemObj.totalTestCaseCount = totalTestCaseCount;
     res.json(problemObj);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -105,7 +156,7 @@ router.post('/submissions', async (req, res) => {
       totalTime += result.time;
 
       const actualOutput = (result.stdout || '').trim();
-      const expectedOutput = (tc.output || '').trim();
+      const expectedOutput = sanitizeExpectedOutput(tc.output || '');
       const passed_ = actualOutput === expectedOutput;
 
       if (passed_) {

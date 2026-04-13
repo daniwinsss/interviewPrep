@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import renderMathInElement from 'katex/dist/contrib/auto-render';
 
 // ─── API Config ────────────────────────────────────────────────────────────────
-const HF_API_BASE = 'https://datasets-server.huggingface.co/rows?dataset=lmms-lab%2FCSBench_MCQ&config=default&split=mcq';
+const API = 'http://localhost:5000/api/mcq';
 const ANSWER_MAP = { A: 0, B: 1, C: 2, D: 3 };
 const QUESTIONS_PER_QUIZ = 10;
 
@@ -359,6 +359,7 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
 function Quiz({ subject, questions, onFinish, onBack }) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState(null);
+  const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const containerRef = useRef(null);
 
@@ -595,18 +596,11 @@ export default function MCQ() {
     setError(null);
 
     try {
-      const responses = await Promise.all(
-        selectedSubject.offsets.map(offset =>
-          fetch(`${HF_API_BASE}&offset=${offset}&length=100`).then(r => {
-            if (!r.ok) throw new Error(`API error: ${r.status}`);
-            return r.json();
-          })
-        )
-      );
+      const response = await fetch(`${API}/questions?subject=${selectedSubject.id}`);
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
 
-      const all = responses
-        .flatMap(data => data.rows.map(r => r.row))
-        .filter(r => r.Domain === selectedSubject.domain && r.Language === 'English')
+      const data = await response.json();
+      const all = (data.rows || [])
         .map(transformRow);
 
       if (all.length < 3) {

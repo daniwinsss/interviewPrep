@@ -8,13 +8,20 @@ const router = express.Router();
 router.post('/start', async (req, res) => {
   try {
     const { userId, topic } = req.body;
+    if (!topic) return res.status(400).json({ error: 'topic is required' });
+    const openingQuestion = llmService.getOpeningQuestion(topic, []);
+    if (!openingQuestion) {
+      return res.status(400).json({ error: 'No interview questions configured for this topic' });
+    }
     
     const interview = new Interview({
-      userId,
+      userId: userId || 'anonymous',
       topic,
+      askedQuestions: [openingQuestion],
+      completed: false,
       messages: [{ 
         role: 'ai', 
-        content: `Welcome to your ${topic} interview. First question: Could you explain the concept of hoisting in Javascript and how it affects variables declared with var, let, and const?`,
+        content: `Welcome to your ${topic} interview. First question: ${openingQuestion}`,
       }]
     });
     
@@ -29,27 +36,55 @@ router.post('/start', async (req, res) => {
 router.post('/answer', async (req, res) => {
   try {
     const { interviewId, answer } = req.body;
+    if (!interviewId || !answer?.trim()) {
+      return res.status(400).json({ error: 'interviewId and answer are required' });
+    }
     
     const interview = await Interview.findById(interviewId);
     if (!interview) return res.status(404).json({ error: 'Interview not found' });
+    if (interview.completed) {
+      return res.status(400).json({ error: 'This interview session is already complete' });
+    }
 
     // Push the user's answer into history
     interview.messages.push({ role: 'user', content: answer });
 
-    // Ask Gemini for evaluation & next question
+    // Ask Gemini/fallback evaluator for feedback
     const evaluation = await llmService.evaluateInterviewAnswer(interview.topic, interview.messages);
+    const nextQuestion = llmService.getNextQuestion(interview.topic, interview.askedQuestions);
     
     // Assign rating to the user's answer
     interview.messages[interview.messages.length - 1].rating = evaluation.rating;
     
-    // Append the AI's feedback and next question
-    interview.messages.push({ 
-      role: 'ai', 
-      content: `${evaluation.feedback}\n\n**Next Question:** ${evaluation.nextQuestion}` 
-    });
+    if (nextQuestion) {
+      interview.askedQuestions.push(nextQuestion);
+      interview.messages.push({ 
+        role: 'ai', 
+        content: `${evaluation.feedback}\n\nNext Question: ${nextQuestion}` 
+      });
+    } else {
+      interview.completed = true;
+      interview.messages.push({
+        role: 'ai',
+        content: `${evaluation.feedback}\n\nYou have completed this interview set. Change topic or restart to continue practicing.`
+      });
+    }
+
+    const ratedUserMessages = interview.messages.filter((msg) => msg.role === 'user' && typeof msg.rating === 'number');
+    if (ratedUserMessages.length > 0) {
+      interview.overallScore = Math.round(
+        ratedUserMessages.reduce((sum, msg) => sum + msg.rating, 0) / ratedUserMessages.length
+      );
+    }
 
     await interview.save();
-    res.json({ evaluation, interview });
+    res.json({
+      evaluation: {
+        ...evaluation,
+        nextQuestion: nextQuestion || null
+      },
+      interview
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

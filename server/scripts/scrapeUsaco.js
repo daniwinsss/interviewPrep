@@ -1,12 +1,12 @@
 /**
  * USACO Problem Scraper & Seeder
- * 
+ *
  * Usage: node server/scripts/scrapeUsaco.js
- * 
+ *
  * This script:
  * 1. Fetches problem statement HTML from usaco.org for each curated cpid
- * 2. Downloads + unzips the test data
- * 3. Seeds all problems into MongoDB
+ * 2. Downloads + unzips the test data when available
+ * 3. Seeds valid problems into MongoDB
  */
 
 import 'dotenv/config';
@@ -14,49 +14,72 @@ import axios from 'axios';
 import * as cheerio from 'cheerio';
 import AdmZip from 'adm-zip';
 import mongoose from 'mongoose';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import Problem from '../src/models/Problem.js';
 import { BRONZE_PROBLEMS, SILVER_PROBLEMS, GOLD_PROBLEMS } from './usacoProblemList.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 const USACO_BASE = 'https://usaco.org';
 const PROBLEM_URL = (cpid) => `${USACO_BASE}/index.php?page=viewproblem2&cpid=${cpid}`;
+const PUBLIC_SAMPLE_LIMIT = 3;
 
-// Polite delay between requests to avoid hammering USACO servers
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-/**
- * Parse the problem HTML page to extract:
- * - title, description, time/memory limits
- */
-/**
- * Extract sample test cases from the problem HTML
- */
+function normalizeHtml(html = '') {
+  return html
+    .replace(/\u00a0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function stripTags(html = '') {
+  return normalizeHtml(cheerio.load(`<div>${html}</div>`)('div').text());
+}
+
+function isFallbackDescription(description = '') {
+  return !description || /See problem at usaco\.org/i.test(description);
+}
+
+function hasMeaningfulDescription(description = '') {
+  if (isFallbackDescription(description)) return false;
+  return stripTags(description).length >= 120;
+}
+
+function hasUsableTestCases(testCases = []) {
+  return Array.isArray(testCases) && testCases.some(tc => tc?.input?.trim() && tc?.output?.trim());
+}
+
+function isPlaceholderProblem(problem) {
+  return (
+    !problem?.description ||
+    problem.description.includes('usaco.org') ||
+    stripTags(problem.description).length < 120 ||
+    problem.testCases?.some(tc => tc?.input === '3\n1 2 3' && tc?.output === '6')
+  );
+}
+
 function extractSamples(html) {
   if (!html) return [];
   const $ = cheerio.load(html);
-  
-  // Clean up HTML tags for text matching
-  const text = $('body').text();
-  
-  // Common USACO patterns: "SAMPLE INPUT:" and "SAMPLE OUTPUT:"
-  const inputRegex = /SAMPLE INPUT\s*:?\s*([^]*?)(?=SAMPLE OUTPUT|SCORING|PROBLEM NAME|INPUT FORMAT|$)/i;
-  const outputRegex = /SAMPLE OUTPUT\s*:?\s*([^]*?)(?=SAMPLE INPUT|SCORING|PROBLEM NAME|OUTPUT FORMAT|$)/i;
-  
-  const inputMatch = text.match(inputRegex);
-  const outputMatch = text.match(outputRegex);
-  
-  if (inputMatch && outputMatch) {
+
+  const sampleInputs = $('h4')
+    .filter((_, el) => /sample input/i.test($(el).text()))
+    .map((_, el) => $(el).nextAll('pre').first().text().trim())
+    .get()
+    .filter(Boolean);
+
+  const sampleOutputs = $('h4')
+    .filter((_, el) => /sample output/i.test($(el).text()))
+    .map((_, el) => $(el).nextAll('pre').first().text().trim())
+    .get()
+    .filter(Boolean);
+
+  if (sampleInputs.length > 0 && sampleOutputs.length > 0) {
     return [{
-      input: inputMatch[1].trim(),
-      output: outputMatch[1].trim(),
+      input: sampleInputs[0],
+      output: sampleOutputs[0],
       isHidden: false
     }];
   }
-  
-  // Try <pre> tags as fallback
+
   const samples = [];
   $('pre').each((_, el) => {
     const content = $(el).text().trim();
@@ -64,7 +87,7 @@ function extractSamples(html) {
       samples.push(content);
     }
   });
-  
+
   if (samples.length >= 2) {
     return [{
       input: samples[0],
@@ -72,15 +95,35 @@ function extractSamples(html) {
       isHidden: false
     }];
   }
-  
+
   return [];
+}
+
+function extractDescriptionFromPage(html) {
+  const $ = cheerio.load(html);
+  const selectors = ['.problem-text', '.problem-statement', '.panel.prob', '.prob-text', 'div[role="main"]'];
+
+  for (const selector of selectors) {
+    const candidate = $(selector).first().html()?.trim();
+    if (hasMeaningfulDescription(candidate)) {
+      return candidate;
+    }
+  }
+
+  const bodyHtml = $('body').html()?.trim();
+  const bodyText = stripTags(bodyHtml || '');
+  if (/sample input|sample output|input format|output format/i.test(bodyText) && bodyText.length >= 120) {
+    return bodyHtml;
+  }
+
+  return '';
 }
 
 async function fetchProblemPage(cpid, retries = 3) {
   for (let i = 0; i < retries; i++) {
     try {
       const { data: html } = await axios.get(PROBLEM_URL(cpid), {
-        headers: { 
+        headers: {
           'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
           'Referer': 'http://www.usaco.org/index.php?page=problems',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
@@ -90,32 +133,23 @@ async function fetchProblemPage(cpid, retries = 3) {
       });
 
       const $ = cheerio.load(html);
-      
-      const bodyEl = $('.problem-text');
-      const description = bodyEl.html()?.trim();
-      
-      // Some pages might use different structure or be empty if redirected
-      if (!description || description.length < 100) {
-        // Check if maybe it's under a different selector?
-        const fallback = $('.problem-statement').html()?.trim();
-        if (fallback && fallback.length > 100) {
-          return { description: fallback, samples: extractSamples(fallback), timeLimit: 2000, memoryLimit: 256 };
-        }
-        throw new Error(`Incomplete page content (length: ${description?.length || 0})`);
+      const description = extractDescriptionFromPage(html);
+
+      if (!hasMeaningfulDescription(description)) {
+        throw new Error(`Incomplete page content for cpid=${cpid}`);
       }
 
-      const samples = extractSamples(bodyEl.html());
-      
+      const samples = extractSamples(description);
       const infoText = $('.prob-info').text() || '';
       const timeLimitMatch = infoText.match(/(\d+)\s*second/i);
       const memLimitMatch = infoText.match(/(\d+)\s*MB/i);
-      
-      const timeLimit = timeLimitMatch ? parseInt(timeLimitMatch[1]) * 1000 : 2000;
-      const memoryLimit = memLimitMatch ? parseInt(memLimitMatch[1]) : 256;
+
+      const timeLimit = timeLimitMatch ? parseInt(timeLimitMatch[1], 10) * 1000 : 2000;
+      const memoryLimit = memLimitMatch ? parseInt(memLimitMatch[1], 10) : 256;
 
       return { description, timeLimit, memoryLimit, samples };
     } catch (err) {
-      console.warn(`  ⚠  [Attempt ${i+1}/${retries}] Failed to fetch cpid=${cpid}: ${err.message}`);
+      console.warn(`  WARN  [Attempt ${i + 1}/${retries}] Failed to fetch cpid=${cpid}: ${err.message}`);
       if (i === retries - 1) {
         return {
           description: `See problem at usaco.org (Direct: http://www.usaco.org/index.php?page=viewproblem2&cpid=${cpid})`,
@@ -124,19 +158,11 @@ async function fetchProblemPage(cpid, retries = 3) {
           samples: []
         };
       }
-      await sleep(3000); 
+      await sleep(3000);
     }
   }
 }
 
-/**
- * Fetch test data ZIP for a problem
- * USACO hosts zips at: usaco.org/usaco/data/<problem>.zip
- * We discover the zip URL from the problem page's links
- */
-/**
- * Fetch test cases for a problem
- */
 async function fetchTestCases(cpid, extractedSamples = []) {
   try {
     const { data: html } = await axios.get(PROBLEM_URL(cpid), {
@@ -145,9 +171,8 @@ async function fetchTestCases(cpid, extractedSamples = []) {
     });
 
     const $ = cheerio.load(html);
-    
-    // Find a link to the test data ZIP
     let zipUrl = null;
+
     $('a[href*=".zip"]').each((_, el) => {
       const href = $(el).attr('href');
       if (href && href.includes('usaco')) {
@@ -157,11 +182,11 @@ async function fetchTestCases(cpid, extractedSamples = []) {
 
     if (!zipUrl) {
       if (extractedSamples.length > 0) {
-        console.log(`  ℹ  Using extracted samples for cpid=${cpid} (no ZIP found)`);
+        console.log(`  INFO  Using extracted samples for cpid=${cpid} (no ZIP found)`);
         return extractedSamples;
       }
-      console.warn(`  ⚠  No test data ZIP found for cpid=${cpid}, using sample data`);
-      return generateSampleTestCases();
+      console.warn(`  WARN  No test data ZIP found for cpid=${cpid}, and no samples were extracted`);
+      return [];
     }
 
     const { data: zipBuffer } = await axios.get(zipUrl, {
@@ -171,20 +196,15 @@ async function fetchTestCases(cpid, extractedSamples = []) {
     });
 
     const zip = new AdmZip(Buffer.from(zipBuffer));
-    const entries = zip.getEntries();
-
-    // Collect all .in/.out pairs
     const inputs = {};
     const outputs = {};
 
-    for (const entry of entries) {
-      const name = entry.entryName.split('/').pop(); // get filename
+    for (const entry of zip.getEntries()) {
+      const name = entry.entryName.split('/').pop();
       if (name.endsWith('.in')) {
-        const num = name.replace('.in', '');
-        inputs[num] = entry.getData().toString('utf-8');
+        inputs[name.replace('.in', '')] = entry.getData().toString('utf-8');
       } else if (name.endsWith('.out')) {
-        const num = name.replace('.out', '');
-        outputs[num] = entry.getData().toString('utf-8');
+        outputs[name.replace('.out', '')] = entry.getData().toString('utf-8');
       }
     }
 
@@ -194,38 +214,22 @@ async function fetchTestCases(cpid, extractedSamples = []) {
         testCases.push({
           input: inputs[num].trim(),
           output: outputs[num].trim(),
-          // First 2 test cases are visible, rest are hidden
-          isHidden: parseInt(num) > 2
+          isHidden: parseInt(num, 10) > PUBLIC_SAMPLE_LIMIT
         });
       }
     }
 
     if (testCases.length === 0) {
-      return extractedSamples.length > 0 ? extractedSamples : generateSampleTestCases();
+      return extractedSamples.length > 0 ? extractedSamples : [];
     }
 
-    // Limit to 10 test cases per problem for storage efficiency
-    return testCases.slice(0, 10);
-
+    return testCases;
   } catch (err) {
-    console.warn(`  ⚠  Could not fetch test cases for cpid=${cpid}: ${err.message}`);
-    return extractedSamples.length > 0 ? extractedSamples : generateSampleTestCases();
+    console.warn(`  WARN  Could not fetch test cases for cpid=${cpid}: ${err.message}`);
+    return extractedSamples.length > 0 ? extractedSamples : [];
   }
 }
 
-/**
- * Fallback sample test cases when download fails
- */
-function generateSampleTestCases() {
-  return [
-    { input: '3\n1 2 3', output: '6', isHidden: false },
-    { input: '5\n1 1 1 1 1', output: '5', isHidden: true }
-  ];
-}
-
-/**
- * Map division to our difficulty enum
- */
 function mapDifficulty(division, rawDifficulty) {
   if (division === 'Bronze') {
     if (rawDifficulty === 'Easy') return 'Easy';
@@ -233,57 +237,62 @@ function mapDifficulty(division, rawDifficulty) {
     return 'Medium';
   }
   if (division === 'Silver') {
-    // Silver problems are always Medium or Hard
     return rawDifficulty === 'Hard' ? 'Hard' : 'Medium';
   }
-  // Gold problems are always Hard or Medium
   return rawDifficulty === 'Hard' ? 'Hard' : 'Medium';
 }
 
 async function main() {
-  console.log('🐄 USACO Problem Scraper Starting...\n');
+  console.log('USACO Problem Scraper Starting...\n');
 
-  // Connect to MongoDB
   const uri = process.env.MONGO_URI || 'mongodb://localhost:27017/interviewPrep';
-  console.log(`📦 Connecting to MongoDB...`);
+  console.log('Connecting to MongoDB...');
   await mongoose.connect(uri);
-  console.log('✅ MongoDB Connected\n');
+  console.log('MongoDB Connected\n');
 
   const allProblems = [
-    ...BRONZE_PROBLEMS.map(p => ({ ...p, division: 'Bronze' })),
-    ...SILVER_PROBLEMS.map(p => ({ ...p, division: 'Silver' })),
-    ...GOLD_PROBLEMS.map(p => ({ ...p, division: 'Gold' }))
+    ...BRONZE_PROBLEMS.map((p) => ({ ...p, division: 'Bronze' })),
+    ...SILVER_PROBLEMS.map((p) => ({ ...p, division: 'Silver' })),
+    ...GOLD_PROBLEMS.map((p) => ({ ...p, division: 'Gold' }))
   ];
 
   let seeded = 0;
   let skipped = 0;
+  let failed = 0;
+  const failedProblems = [];
 
   for (const prob of allProblems) {
     const { cpid, title, contest, difficulty, division, topic } = prob;
-
-    // Skip if already in DB
     const existing = await Problem.findOne({ usacoCpid: cpid });
+
     if (existing) {
-      const isPlaceholder = existing.testCases[0]?.input === '3\n1 2 3';
-      const isBroken = !existing.description || existing.description.includes('usaco.org') || existing.description.length < 100;
       const needsTopicUpdate = existing.topic !== topic;
-      
-      if (isPlaceholder || isBroken || needsTopicUpdate) {
-        console.log(`  📝 Updating "${title}" (cpid=${cpid}) - needs repair (broken description or placeholders)`);
-      } else {
-        console.log(`  ⏩ Skipping "${title}" (cpid=${cpid}) - up to date`);
+      if (!isPlaceholderProblem(existing) && !needsTopicUpdate) {
+        console.log(`  SKIP  "${title}" (cpid=${cpid}) is already up to date`);
         skipped++;
         continue;
       }
+      console.log(`  REPAIR  "${title}" (cpid=${cpid}) needs refresh`);
     }
 
-    console.log(`  📥 Processing [${division}] "${title}" (cpid=${cpid})...`);
+    console.log(`  FETCH  [${division}] "${title}" (cpid=${cpid})`);
 
     const { description, timeLimit, memoryLimit, samples } = await fetchProblemPage(cpid);
-    await sleep(1500); // Politer pause
+    await sleep(1500);
 
     const testCases = await fetchTestCases(cpid, samples);
-    await sleep(1500); // Politer pause
+    await sleep(1500);
+
+    let invalidReason = null;
+    if (!hasMeaningfulDescription(description)) invalidReason = 'missing or fallback description';
+    else if (!hasUsableTestCases(testCases)) invalidReason = 'missing usable test cases';
+
+    if (invalidReason) {
+      console.warn(`  FAIL  "${title}" (cpid=${cpid}) skipped: ${invalidReason}\n`);
+      failed++;
+      failedProblems.push({ cpid, title, reason: invalidReason });
+      continue;
+    }
 
     if (existing) {
       existing.title = title;
@@ -295,36 +304,45 @@ async function main() {
       existing.memoryLimit = memoryLimit;
       existing.testCases = testCases;
       await existing.save();
-      console.log(`  ✅ Updated "${title}" in database\n`);
+      console.log(`  OK  Updated "${title}"\n`);
       seeded++;
-    } else {
-      const newProblem = new Problem({
-        title,
-        description,
-        difficulty: mapDifficulty(division, difficulty),
-        source: 'usaco',
-        usacoCpid: cpid,
-        division,
-        topic,
-        contest,
-        timeLimit,
-        memoryLimit,
-        languages: ['java', 'python', 'cpp'],
-        testCases,
-        company: []
-      });
-      await newProblem.save();
-      seeded++;
-      console.log(`  ✅ Saved NEW problem "${title}" with ${testCases.length} test case(s)\n`);
+      continue;
+    }
+
+    const newProblem = new Problem({
+      title,
+      description,
+      difficulty: mapDifficulty(division, difficulty),
+      source: 'usaco',
+      usacoCpid: cpid,
+      division,
+      topic,
+      contest,
+      timeLimit,
+      memoryLimit,
+      languages: ['java', 'python', 'cpp'],
+      testCases,
+      company: []
+    });
+
+    await newProblem.save();
+    seeded++;
+    console.log(`  OK  Saved "${title}" with ${testCases.length} test case(s)\n`);
+  }
+
+  console.log(`\nDone! Seeded: ${seeded} | Skipped: ${skipped} | Failed validation: ${failed}`);
+  if (failedProblems.length > 0) {
+    console.log('Failed problems:');
+    for (const prob of failedProblems) {
+      console.log(`  - ${prob.title} (cpid=${prob.cpid}): ${prob.reason}`);
     }
   }
 
-  console.log(`\n🎉 Done! Seeded: ${seeded} | Skipped (already existed): ${skipped}`);
   await mongoose.disconnect();
   process.exit(0);
 }
 
-main().catch(err => {
-  console.error('❌ Fatal scraper error:', err);
+main().catch((err) => {
+  console.error('Fatal scraper error:', err);
   process.exit(1);
 });

@@ -10,6 +10,8 @@
     "worker": "node worker.js",
     "worker:dev": "nodemon worker.js",
     "scrape": "node scripts/scrapeUsaco.js",
+    "cleanup:broken-usaco:check": "node scripts/cleanup_broken_usaco.js",
+    "cleanup:broken-usaco": "node scripts/cleanup_broken_usaco.js --delete",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

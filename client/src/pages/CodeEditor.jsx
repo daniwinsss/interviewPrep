@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo, memo } from 'react';
 import Editor from '@monaco-editor/react';
 import { Play, Send, Code2, ArrowLeft, Clock, MemoryStick, CheckCircle, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
@@ -26,6 +26,94 @@ const statusLabel = {
   tle:          'Time Limit Exceeded',
 };
 
+function escapeHtml(text = '') {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatPlainTextDescription(text = '') {
+  const normalized = String(text).replace(/\r\n/g, '\n').trim();
+  if (!normalized) return '';
+  if (/<[a-z][\s\S]*>/i.test(normalized)) return normalized;
+
+  const sectionNames = [
+    'INPUT FORMAT',
+    'OUTPUT FORMAT',
+    'SAMPLE INPUT',
+    'SAMPLE OUTPUT',
+    'SCORING'
+  ];
+
+  const lines = normalized.split('\n');
+  let html = '';
+  let inPre = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    const isSection = sectionNames.some(name => trimmed.startsWith(name));
+    const isAllCapsLine = trimmed.length > 0 && trimmed === trimmed.toUpperCase() && /[A-Z]/.test(trimmed);
+    const nextTrimmed = (lines[i + 1] || '').trim();
+    const looksLikeSampleData = /^-?\d+(\s+-?\d+)*$/.test(trimmed) || (/^[01]+$/.test(trimmed) && trimmed.length > 1);
+
+    if (isSection || isAllCapsLine) {
+      if (inPre) {
+        html += '</pre>';
+        inPre = false;
+      }
+      html += `<h4>${escapeHtml(trimmed)}</h4>`;
+      continue;
+    }
+
+    if (!trimmed) {
+      if (inPre) {
+        html += '</pre>';
+        inPre = false;
+      }
+      continue;
+    }
+
+    if (
+      looksLikeSampleData ||
+      (inPre && trimmed) ||
+      (nextTrimmed && /^-?\d+(\s+-?\d+)*$/.test(nextTrimmed) && trimmed.length < 120)
+    ) {
+      if (!inPre) {
+        html += '<pre>';
+        inPre = true;
+      } else {
+        html += '\n';
+      }
+      html += escapeHtml(line);
+      continue;
+    }
+
+    if (inPre) {
+      html += '</pre>';
+      inPre = false;
+    }
+
+    html += `<p>${escapeHtml(trimmed)}</p>`;
+  }
+
+  if (inPre) html += '</pre>';
+  return html;
+}
+
+const ProblemDescriptionHtml = memo(function ProblemDescriptionHtml({ html, descriptionRef }) {
+  return (
+    <div
+      ref={descriptionRef}
+      className="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  );
+});
+
 export default function CodeEditor() {
   const { id } = useParams();
   const [problem, setProblem] = useState(null);
@@ -38,6 +126,10 @@ export default function CodeEditor() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeTab, setActiveTab] = useState('description'); // description | results
   const descriptionRef = useRef(null);
+  const formattedDescription = useMemo(
+    () => formatPlainTextDescription(problem?.description || ''),
+    [problem?.description]
+  );
 
   // Auto-render math when problem content or tab changes
   useEffect(() => {
@@ -53,7 +145,7 @@ export default function CodeEditor() {
         throwOnError: false,
       });
     }
-  }, [problem, activeTab, loading]);
+  }, [formattedDescription, activeTab, loading]);
 
   // Load problem from API
   useEffect(() => {
@@ -208,7 +300,7 @@ export default function CodeEditor() {
             ))}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6" ref={descriptionRef}>
+          <div className="flex-1 overflow-y-auto p-6">
             {activeTab === 'description' ? (
               <div className="flex flex-col gap-6">
                 {loading ? (
@@ -236,12 +328,19 @@ export default function CodeEditor() {
                           <MemoryStick className="w-4 h-4" /> {problem.memoryLimit}MB
                         </span>
                       )}
+                      {typeof problem.sampleTestCaseCount === 'number' && (
+                        <span className="flex items-center gap-1.5">
+                          <CheckCircle className="w-4 h-4" /> {problem.sampleTestCaseCount} sample{problem.sampleTestCaseCount !== 1 ? 's' : ''}
+                        </span>
+                      )}
+                      {typeof problem.hiddenTestCaseCount === 'number' && problem.hiddenTestCaseCount > 0 && (
+                        <span className="text-slate-500">
+                          + {problem.hiddenTestCaseCount} hidden test{problem.hiddenTestCaseCount !== 1 ? 's' : ''} used on submit
+                        </span>
+                      )}
                     </div>
 
-                    <div
-                      className="prose prose-invert prose-slate max-w-none text-slate-300 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: problem.description }}
-                    />
+                    <ProblemDescriptionHtml html={formattedDescription} descriptionRef={descriptionRef} />
 
                     {/* Sample Test Cases */}
                     {problem.testCases?.length > 0 && (
@@ -250,6 +349,12 @@ export default function CodeEditor() {
                           <CheckCircle className="w-5 h-5 text-blue-500" />
                           Sample Test Cases
                         </h3>
+                        {typeof problem.hiddenTestCaseCount === 'number' && (
+                          <p className="text-sm text-slate-500">
+                            Showing {problem.sampleTestCaseCount || problem.testCases.length} sample test case{(problem.sampleTestCaseCount || problem.testCases.length) !== 1 ? 's' : ''}.
+                            {problem.hiddenTestCaseCount > 0 ? ` Submit also runs ${problem.hiddenTestCaseCount} hidden test case${problem.hiddenTestCaseCount !== 1 ? 's' : ''}.` : ''}
+                          </p>
+                        )}
                         <div className="grid grid-cols-1 gap-4">
                           {problem.testCases.map((tc, i) => (
                             <div key={i} className="group flex flex-col gap-0 border border-slate-800 rounded-xl overflow-hidden bg-slate-900/40">
