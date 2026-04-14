@@ -363,7 +363,6 @@ export default function Interview() {
             liveStabilityTimerRef.current = setTimeout(() => {
               if (
                 liveConnectionAttemptRef.current !== attemptId ||
-                !liveSessionInitializedRef.current ||
                 !liveSessionRef.current
               ) {
                 return;
