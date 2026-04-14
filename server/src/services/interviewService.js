@@ -1031,6 +1031,7 @@ export const interviewService = {
       throw new Error('Gemini Live voice is not configured on the server');
     }
 
+    const liveModel = 'gemini-2.5-flash-native-audio-preview-12-2025';
     const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     const newSessionExpireTime = new Date(Date.now() + 60 * 1000).toISOString();
 
@@ -1040,7 +1041,7 @@ export const interviewService = {
         expireTime,
         newSessionExpireTime,
         liveConnectConstraints: {
-          model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+          model: liveModel,
           config: {
             responseModalities: ['AUDIO'],
             outputAudioTranscription: {},
@@ -1055,6 +1056,7 @@ export const interviewService = {
 
     return {
       token: token.name,
+      model: liveModel,
       expireTime: token.expireTime || expireTime,
       newSessionExpireTime: token.newSessionExpireTime || newSessionExpireTime
     };

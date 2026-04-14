@@ -285,7 +285,7 @@ export default function Interview() {
       liveMediaStreamRef.current = mediaStream;
 
       const session = await ai.live.connect({
-        model: 'gemini-live-2.5-flash-preview',
+        model: tokenData.model || 'gemini-2.5-flash-native-audio-preview-12-2025',
         config: {
           responseModalities: [Modality.AUDIO],
           outputAudioTranscription: {},
