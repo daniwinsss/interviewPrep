@@ -295,7 +295,7 @@ export default function Interview() {
 
     codeMonitorTimerRef.current = setTimeout(() => {
       requestCodeFeedback(code);
-    }, 1800);
+    }, 30000);
 
     return () => {
       if (codeMonitorTimerRef.current) {

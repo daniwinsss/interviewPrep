@@ -128,6 +128,15 @@ router.post('/code-feedback', async (req, res) => {
   }
 });
 
+router.post('/live-token', async (req, res) => {
+  try {
+    const result = await interviewService.createLiveVoiceToken();
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.post('/:id/hint', async (req, res) => {
   try {
     const result = await interviewService.requestHint(req.params.id);

@@ -1026,6 +1026,40 @@ export const interviewService = {
     };
   },
 
+  async createLiveVoiceToken() {
+    if (!ai || !ai.authTokens?.create) {
+      throw new Error('Gemini Live voice is not configured on the server');
+    }
+
+    const expireTime = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+    const newSessionExpireTime = new Date(Date.now() + 60 * 1000).toISOString();
+
+    const token = await ai.authTokens.create({
+      config: {
+        uses: 1,
+        expireTime,
+        newSessionExpireTime,
+        liveConnectConstraints: {
+          model: 'gemini-2.5-flash-native-audio-preview-12-2025',
+          config: {
+            responseModalities: ['AUDIO'],
+            outputAudioTranscription: {},
+            inputAudioTranscription: {}
+          }
+        },
+        httpOptions: {
+          apiVersion: 'v1alpha'
+        }
+      }
+    });
+
+    return {
+      token: token.name,
+      expireTime: token.expireTime || expireTime,
+      newSessionExpireTime: token.newSessionExpireTime || newSessionExpireTime
+    };
+  },
+
   async getReport(sessionId) {
     const report = await InterviewReport.findOne({ sessionId }).lean();
     return report;
