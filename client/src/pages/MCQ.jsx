@@ -2,9 +2,10 @@ import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { ArrowLeft, CheckCircle2, XCircle, Circle, RotateCcw, Trophy, BookOpen, Cpu, Globe, Binary, Search, Shuffle, ChevronRight, ChevronDown, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import renderMathInElement from 'katex/dist/contrib/auto-render';
+import { apiUrl } from '../lib/api';
 
 // ─── API Config ────────────────────────────────────────────────────────────────
-const API = 'http://localhost:5000/api/mcq';
+const API = apiUrl('/api/mcq');
 const ANSWER_MAP = { A: 0, B: 1, C: 2, D: 3 };
 const QUESTIONS_PER_QUIZ = 10;
 

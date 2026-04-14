@@ -3,8 +3,9 @@ import Editor from '@monaco-editor/react';
 import { Play, Send, Code2, ArrowLeft, Clock, MemoryStick, CheckCircle, XCircle, AlertTriangle, ChevronDown } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import renderMathInElement from 'katex/dist/contrib/auto-render';
+import { apiUrl } from '../lib/api';
 
-const API = 'http://localhost:5000/api/judge';
+const API = apiUrl('/api/judge');
 
 const LANG_MAP = {
   java: { label: 'Java', monacoLang: 'java' },

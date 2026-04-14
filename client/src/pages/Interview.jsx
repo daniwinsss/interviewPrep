@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { Bot, Send, ArrowLeft, Loader2, ExternalLink, Code2, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { apiUrl } from '../lib/api';
 
-const API = 'http://localhost:5000/api/ai/interview';
+const API = apiUrl('/api/ai/interview');
 const TOPICS = ['DSA', 'Behavioral', 'System Design', 'Project Experience'];
 const LANG_MAP = {
   cpp: { label: 'C++', monaco: 'cpp' },

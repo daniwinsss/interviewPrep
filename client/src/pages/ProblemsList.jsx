@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Code2, ArrowLeft, Search, ExternalLink, ChevronDown, ChevronRight, Trophy } from 'lucide-react';
+import { apiUrl } from '../lib/api';
 
-const API = 'http://localhost:5000/api/judge';
+const API = apiUrl('/api/judge');
 
 const DIVISIONS = ['All', 'Bronze', 'Silver', 'Gold'];
 const DIFFICULTIES = ['All', 'Easy', 'Medium', 'Hard'];
