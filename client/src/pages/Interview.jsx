@@ -73,6 +73,9 @@ export default function Interview() {
   const liveConnectionAttemptRef = useRef(0);
   const liveReadyRef = useRef(false);
   const liveStartupCompleteRef = useRef(false);
+  const liveSessionInitializedRef = useRef(false);
+  const liveIntentionallyClosingRef = useRef(false);
+  const liveCloseQueuedRef = useRef(false);
 
   const syncInterviewState = useCallback((interview) => {
     if (!interview) return;
@@ -189,9 +192,12 @@ export default function Interview() {
   }, []);
 
   const activateFallbackVoice = useCallback((nextStatus = 'Using standard voice mode.') => {
+    liveIntentionallyClosingRef.current = true;
     clearLiveTimers();
     liveReadyRef.current = false;
     liveStartupCompleteRef.current = false;
+    liveSessionInitializedRef.current = false;
+    liveCloseQueuedRef.current = false;
     if (liveMediaRecorderRef.current?.state === 'recording') {
       liveMediaRecorderRef.current.stop();
     }
@@ -298,6 +304,11 @@ export default function Interview() {
     setVoiceStatus('Connecting live voice...');
     const attemptId = Date.now();
     liveConnectionAttemptRef.current = attemptId;
+    liveIntentionallyClosingRef.current = false;
+    liveSessionInitializedRef.current = false;
+    liveStartupCompleteRef.current = false;
+    liveReadyRef.current = false;
+    liveCloseQueuedRef.current = false;
 
     try {
       if (!navigator.mediaDevices?.getUserMedia) {
@@ -343,10 +354,17 @@ export default function Interview() {
             if (liveConnectionAttemptRef.current !== attemptId) {
               return;
             }
+            if (liveStartupTimerRef.current) {
+              clearTimeout(liveStartupTimerRef.current);
+              liveStartupTimerRef.current = null;
+            }
             setLiveSessionStatus('warming_up');
             setVoiceStatus('Live voice connected. Verifying session stability...');
             liveStabilityTimerRef.current = setTimeout(() => {
-              if (liveConnectionAttemptRef.current !== attemptId || !liveSessionRef.current) {
+              if (liveConnectionAttemptRef.current !== attemptId || !liveSessionInitializedRef.current) {
+                return;
+              }
+              if (liveCloseQueuedRef.current || liveIntentionallyClosingRef.current) {
                 return;
               }
               liveStartupCompleteRef.current = true;
@@ -393,6 +411,13 @@ export default function Interview() {
             if (liveConnectionAttemptRef.current !== attemptId) {
               return;
             }
+            if (liveIntentionallyClosingRef.current) {
+              return;
+            }
+            if (!liveSessionInitializedRef.current) {
+              liveCloseQueuedRef.current = true;
+              return;
+            }
             const closedDuringStartup = !liveStartupCompleteRef.current;
             if (closedDuringStartup) {
               setError('Gemini Live closed during startup. Using standard voice mode instead.');
@@ -407,6 +432,13 @@ export default function Interview() {
         return;
       }
       liveSessionRef.current = session;
+      liveSessionInitializedRef.current = true;
+      if (liveCloseQueuedRef.current) {
+        liveCloseQueuedRef.current = false;
+        setError('Gemini Live closed during startup. Using standard voice mode instead.');
+        stopLiveVoiceSession('Using standard voice mode.');
+        return;
+      }
 
       const recorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
       liveMediaRecorderRef.current = recorder;
