@@ -65,6 +65,7 @@ export default function Interview() {
   const liveSessionRef = useRef(null);
   const liveMediaRecorderRef = useRef(null);
   const liveMediaStreamRef = useRef(null);
+  const liveSocketActiveRef = useRef(false);
 
   const syncInterviewState = useCallback((interview) => {
     if (!interview) return;
@@ -194,10 +195,12 @@ export default function Interview() {
       if (liveMediaRecorderRef.current?.state === 'recording') {
         liveMediaRecorderRef.current.stop();
       }
+      liveMediaRecorderRef.current = null;
       if (liveMediaStreamRef.current) {
         liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
         liveMediaStreamRef.current = null;
       }
+      liveSocketActiveRef.current = false;
       liveSessionRef.current?.close?.();
       liveSessionRef.current = null;
 
@@ -242,9 +245,11 @@ export default function Interview() {
     setIsLiveVoiceMode(false);
     setIsConnectingVoice(false);
     setLiveTranscript('');
+    liveSocketActiveRef.current = false;
     if (liveMediaRecorderRef.current?.state === 'recording') {
       liveMediaRecorderRef.current.stop();
     }
+    liveMediaRecorderRef.current = null;
     if (liveMediaStreamRef.current) {
       liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
       liveMediaStreamRef.current = null;
@@ -288,6 +293,7 @@ export default function Interview() {
         },
         callbacks: {
           onopen: () => {
+            liveSocketActiveRef.current = true;
             setIsLiveVoiceMode(true);
             setIsConnectingVoice(false);
           },
@@ -310,6 +316,14 @@ export default function Interview() {
             stopLiveVoiceSession();
           },
           onclose: () => {
+            liveSocketActiveRef.current = false;
+            if (liveMediaRecorderRef.current?.state === 'recording') {
+              liveMediaRecorderRef.current.stop();
+            }
+            if (liveMediaStreamRef.current) {
+              liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
+              liveMediaStreamRef.current = null;
+            }
             setIsLiveVoiceMode(false);
             setIsConnectingVoice(false);
           }
@@ -322,16 +336,28 @@ export default function Interview() {
       liveMediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = async (event) => {
-        if (!event.data || event.data.size === 0 || !liveSessionRef.current) {
+        if (!event.data || event.data.size === 0 || !liveSessionRef.current || !liveSocketActiveRef.current) {
           return;
         }
-        liveSessionRef.current.sendRealtimeInput({
-          media: event.data
-        });
+        try {
+          liveSessionRef.current.sendRealtimeInput({
+            media: event.data
+          });
+        } catch (error) {
+          console.error('Gemini Live send error:', error);
+          stopLiveVoiceSession();
+        }
       };
 
       recorder.onstop = () => {
-        liveSessionRef.current?.sendRealtimeInput({ audioStreamEnd: true });
+        if (!liveSessionRef.current || !liveSocketActiveRef.current) {
+          return;
+        }
+        try {
+          liveSessionRef.current.sendRealtimeInput({ audioStreamEnd: true });
+        } catch (error) {
+          console.error('Gemini Live audio end error:', error);
+        }
       };
 
       recorder.start(1000);
