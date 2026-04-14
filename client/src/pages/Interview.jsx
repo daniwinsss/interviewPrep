@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
-import { Bot, Send, ArrowLeft, Loader2, ExternalLink, Code2, ChevronDown } from 'lucide-react';
+import { Bot, Send, ArrowLeft, Loader2, ExternalLink, Code2, ChevronDown, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { apiUrl } from '../lib/api';
 
@@ -49,10 +49,16 @@ export default function Interview() {
   const [language, setLanguage] = useState('cpp');
   const [code, setCode] = useState(STARTER_CODE.cpp);
   const [isMonitoringCode, setIsMonitoringCode] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [spokenReplyEnabled, setSpokenReplyEnabled] = useState(true);
+  const [liveTranscript, setLiveTranscript] = useState('');
 
   const messagesEndRef = useRef(null);
   const codeMonitorTimerRef = useRef(null);
   const lastReviewedCodeRef = useRef('');
+  const recognitionRef = useRef(null);
+  const spokenMessageIdsRef = useRef(new Set());
 
   const syncInterviewState = useCallback((interview) => {
     if (!interview) return;
@@ -70,6 +76,79 @@ export default function Interview() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isMonitoringCode]);
+
+  useEffect(() => {
+    const SpeechRecognitionCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognitionCtor) {
+      setSpeechSupported(false);
+      return undefined;
+    }
+
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results)
+        .map((result) => result[0]?.transcript || '')
+        .join(' ')
+        .trim();
+
+      setLiveTranscript(transcript);
+
+      const lastResult = event.results[event.results.length - 1];
+      if (lastResult?.isFinal && transcript) {
+        setInput(transcript);
+      }
+    };
+
+    recognition.onerror = () => {
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+    setSpeechSupported(true);
+
+    return () => {
+      recognition.onresult = null;
+      recognition.onerror = null;
+      recognition.onend = null;
+      try {
+        recognition.stop();
+      } catch {
+        // Ignore teardown stop errors.
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!spokenReplyEnabled || !window.speechSynthesis) {
+      return;
+    }
+
+    const lastAiMessage = [...messages].reverse().find((msg) => msg.role !== 'user');
+    if (!lastAiMessage?.content) {
+      return;
+    }
+
+    const messageKey = lastAiMessage._id || `${messages.length}:${lastAiMessage.content}`;
+    if (spokenMessageIdsRef.current.has(messageKey)) {
+      return;
+    }
+
+    spokenMessageIdsRef.current.add(messageKey);
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(lastAiMessage.content);
+    utterance.rate = 1;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  }, [messages, spokenReplyEnabled]);
 
   const restartInterview = useCallback(() => {
     setSessionSeed((value) => value + 1);
@@ -93,6 +172,7 @@ export default function Interview() {
       setLanguage('cpp');
       setCode(STARTER_CODE.cpp);
       lastReviewedCodeRef.current = '';
+      spokenMessageIdsRef.current.clear();
 
       if (codeMonitorTimerRef.current) {
         clearTimeout(codeMonitorTimerRef.current);
@@ -135,6 +215,39 @@ export default function Interview() {
       ignore = true;
     };
   }, [topic, sessionSeed, syncInterviewState]);
+
+  const toggleListening = useCallback(() => {
+    if (!recognitionRef.current) {
+      setError('Voice input is not supported in this browser.');
+      return;
+    }
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    setLiveTranscript('');
+    try {
+      recognitionRef.current.start();
+      setIsListening(true);
+    } catch {
+      setError('Could not start voice input. Try refreshing the page and allowing microphone access.');
+    }
+  }, [isListening]);
+
+  const toggleSpokenReplies = useCallback(() => {
+    if (!window.speechSynthesis) {
+      setError('Speech output is not supported in this browser.');
+      return;
+    }
+
+    if (spokenReplyEnabled) {
+      window.speechSynthesis.cancel();
+    }
+    setSpokenReplyEnabled((value) => !value);
+  }, [spokenReplyEnabled]);
 
   const requestCodeFeedback = useCallback(async (nextCode) => {
     if (!sessionId || topic !== 'DSA' || isComplete) return;
@@ -244,6 +357,33 @@ export default function Interview() {
         </div>
 
         <div className="ml-auto flex items-center gap-3">
+          {speechSupported && (
+            <button
+              onClick={toggleListening}
+              disabled={isStarting || isTyping || isComplete}
+              className={`p-2 rounded-lg transition-all ${
+                isListening
+                  ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                  : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+              } disabled:opacity-50`}
+              title={isListening ? 'Stop listening' : 'Start listening'}
+            >
+              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            </button>
+          )}
+
+          <button
+            onClick={toggleSpokenReplies}
+            className={`p-2 rounded-lg transition-all ${
+              spokenReplyEnabled
+                ? 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/30'
+                : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
+            }`}
+            title={spokenReplyEnabled ? 'Mute AI voice' : 'Enable AI voice'}
+          >
+            {spokenReplyEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+          </button>
+
           {isDsa && (
             <div className="relative">
               <select
@@ -339,6 +479,11 @@ export default function Interview() {
             </div>
             {isDsa && problemContent && (
               <p className="text-sm text-slate-400 mt-3 line-clamp-3">{problemContent}</p>
+            )}
+            {speechSupported && liveTranscript && (
+              <div className="mt-3 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
+                Listening: {liveTranscript}
+              </div>
             )}
           </div>
 
