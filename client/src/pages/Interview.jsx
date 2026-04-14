@@ -7,6 +7,8 @@ import { apiUrl } from '../lib/api';
 
 const API = apiUrl('/api/ai/interview');
 const TOPICS = ['DSA', 'Behavioral', 'System Design', 'Project Experience'];
+const LIVE_VOICE_STARTUP_TIMEOUT_MS = 10000;
+const LIVE_VOICE_STABILITY_WINDOW_MS = 2500;
 const LANG_MAP = {
   cpp: { label: 'C++', monaco: 'cpp' },
   java: { label: 'Java', monaco: 'java' },
@@ -54,8 +56,9 @@ export default function Interview() {
   const [isListening, setIsListening] = useState(false);
   const [spokenReplyEnabled, setSpokenReplyEnabled] = useState(true);
   const [liveTranscript, setLiveTranscript] = useState('');
-  const [isLiveVoiceMode, setIsLiveVoiceMode] = useState(false);
-  const [isConnectingVoice, setIsConnectingVoice] = useState(false);
+  const [voiceMode, setVoiceMode] = useState('fallback_active');
+  const [voiceStatus, setVoiceStatus] = useState('Using standard voice mode.');
+  const [liveSessionStatus, setLiveSessionStatus] = useState('idle');
 
   const messagesEndRef = useRef(null);
   const codeMonitorTimerRef = useRef(null);
@@ -65,7 +68,11 @@ export default function Interview() {
   const liveSessionRef = useRef(null);
   const liveMediaRecorderRef = useRef(null);
   const liveMediaStreamRef = useRef(null);
-  const liveSocketActiveRef = useRef(false);
+  const liveStartupTimerRef = useRef(null);
+  const liveStabilityTimerRef = useRef(null);
+  const liveConnectionAttemptRef = useRef(0);
+  const liveReadyRef = useRef(false);
+  const liveStartupCompleteRef = useRef(false);
 
   const syncInterviewState = useCallback((interview) => {
     if (!interview) return;
@@ -137,7 +144,7 @@ export default function Interview() {
     if (!spokenReplyEnabled || !window.speechSynthesis) {
       return;
     }
-    if (isLiveVoiceMode) {
+    if (voiceMode === 'live_ready') {
       return;
     }
 
@@ -158,7 +165,48 @@ export default function Interview() {
     utterance.pitch = 1;
     utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
-  }, [messages, spokenReplyEnabled, isLiveVoiceMode]);
+  }, [messages, spokenReplyEnabled, voiceMode]);
+
+  const clearLiveTimers = useCallback(() => {
+    if (liveStartupTimerRef.current) {
+      clearTimeout(liveStartupTimerRef.current);
+      liveStartupTimerRef.current = null;
+    }
+    if (liveStabilityTimerRef.current) {
+      clearTimeout(liveStabilityTimerRef.current);
+      liveStabilityTimerRef.current = null;
+    }
+  }, []);
+
+  const stopBrowserListening = useCallback(() => {
+    if (!recognitionRef.current) return;
+    try {
+      recognitionRef.current.stop();
+    } catch {
+      // Ignore stop errors when recognition is already stopping.
+    }
+    setIsListening(false);
+  }, []);
+
+  const activateFallbackVoice = useCallback((nextStatus = 'Using standard voice mode.') => {
+    clearLiveTimers();
+    liveReadyRef.current = false;
+    liveStartupCompleteRef.current = false;
+    if (liveMediaRecorderRef.current?.state === 'recording') {
+      liveMediaRecorderRef.current.stop();
+    }
+    liveMediaRecorderRef.current = null;
+    if (liveMediaStreamRef.current) {
+      liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      liveMediaStreamRef.current = null;
+    }
+    liveSessionRef.current?.close?.();
+    liveSessionRef.current = null;
+    setVoiceMode('fallback_active');
+    setLiveSessionStatus('idle');
+    setLiveTranscript('');
+    setVoiceStatus(nextStatus);
+  }, [clearLiveTimers]);
 
   const restartInterview = useCallback(() => {
     setSessionSeed((value) => value + 1);
@@ -183,26 +231,18 @@ export default function Interview() {
       setCode(STARTER_CODE.cpp);
       lastReviewedCodeRef.current = '';
       spokenMessageIdsRef.current.clear();
-      setIsLiveVoiceMode(false);
-      setIsConnectingVoice(false);
+      setVoiceMode('fallback_active');
+      setLiveSessionStatus('idle');
+      setVoiceStatus('Using standard voice mode.');
       setLiveTranscript('');
+      stopBrowserListening();
 
       if (codeMonitorTimerRef.current) {
         clearTimeout(codeMonitorTimerRef.current);
         codeMonitorTimerRef.current = null;
       }
 
-      if (liveMediaRecorderRef.current?.state === 'recording') {
-        liveMediaRecorderRef.current.stop();
-      }
-      liveMediaRecorderRef.current = null;
-      if (liveMediaStreamRef.current) {
-        liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
-        liveMediaStreamRef.current = null;
-      }
-      liveSocketActiveRef.current = false;
-      liveSessionRef.current?.close?.();
-      liveSessionRef.current = null;
+      activateFallbackVoice('Using standard voice mode.');
 
       try {
         const res = await fetch(`${API}/start`, {
@@ -239,34 +279,37 @@ export default function Interview() {
     return () => {
       ignore = true;
     };
-  }, [topic, sessionSeed, syncInterviewState]);
+  }, [topic, sessionSeed, syncInterviewState, activateFallbackVoice, stopBrowserListening]);
 
-  const stopLiveVoiceSession = useCallback(() => {
-    setIsLiveVoiceMode(false);
-    setIsConnectingVoice(false);
-    setLiveTranscript('');
-    liveSocketActiveRef.current = false;
-    if (liveMediaRecorderRef.current?.state === 'recording') {
-      liveMediaRecorderRef.current.stop();
-    }
-    liveMediaRecorderRef.current = null;
-    if (liveMediaStreamRef.current) {
-      liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      liveMediaStreamRef.current = null;
-    }
-    liveSessionRef.current?.close?.();
-    liveSessionRef.current = null;
-  }, []);
+  const stopLiveVoiceSession = useCallback((nextStatus = 'Using standard voice mode.') => {
+    activateFallbackVoice(nextStatus);
+  }, [activateFallbackVoice]);
 
   const startLiveVoiceSession = useCallback(async () => {
-    if (isLiveVoiceMode || isConnectingVoice) {
+    if (voiceMode === 'connecting' || voiceMode === 'live_ready') {
       return;
     }
 
     setError('');
-    setIsConnectingVoice(true);
+    stopBrowserListening();
+    activateFallbackVoice('Connecting live voice...');
+    setVoiceMode('connecting');
+    setLiveSessionStatus('connecting');
+    setVoiceStatus('Connecting live voice...');
+    const attemptId = Date.now();
+    liveConnectionAttemptRef.current = attemptId;
 
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access is not supported in this browser. Using standard voice mode instead.');
+      }
+
+      liveStartupTimerRef.current = setTimeout(() => {
+        if (liveConnectionAttemptRef.current !== attemptId) return;
+        setError('Gemini Live took too long to connect. Using standard voice mode instead.');
+        activateFallbackVoice('Using standard voice mode.');
+      }, LIVE_VOICE_STARTUP_TIMEOUT_MS);
+
       const tokenResponse = await fetch(`${API}/live-token`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
@@ -282,6 +325,10 @@ export default function Interview() {
       });
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      if (liveConnectionAttemptRef.current !== attemptId) {
+        mediaStream.getTracks().forEach((track) => track.stop());
+        return;
+      }
       liveMediaStreamRef.current = mediaStream;
 
       const session = await ai.live.connect({
@@ -293,17 +340,41 @@ export default function Interview() {
         },
         callbacks: {
           onopen: () => {
-            liveSocketActiveRef.current = true;
-            setIsLiveVoiceMode(true);
-            setIsConnectingVoice(false);
+            if (liveConnectionAttemptRef.current !== attemptId) {
+              return;
+            }
+            setLiveSessionStatus('warming_up');
+            setVoiceStatus('Live voice connected. Verifying session stability...');
+            liveStabilityTimerRef.current = setTimeout(() => {
+              if (liveConnectionAttemptRef.current !== attemptId || !liveSessionRef.current) {
+                return;
+              }
+              liveStartupCompleteRef.current = true;
+              liveReadyRef.current = true;
+              clearLiveTimers();
+              setVoiceMode('live_ready');
+              setLiveSessionStatus('live_ready');
+              setVoiceStatus('Live voice active.');
+            }, LIVE_VOICE_STABILITY_WINDOW_MS);
           },
           onmessage: (event) => {
+            if (liveConnectionAttemptRef.current !== attemptId) {
+              return;
+            }
             if (event.serverContent?.inputTranscription?.text) {
               setLiveTranscript(event.serverContent.inputTranscription.text);
             }
 
             if (event.serverContent?.outputTranscription?.text) {
               const text = event.serverContent.outputTranscription.text;
+              if (!liveReadyRef.current && liveSessionRef.current) {
+                liveReadyRef.current = true;
+                liveStartupCompleteRef.current = true;
+                clearLiveTimers();
+                setVoiceMode('live_ready');
+                setLiveSessionStatus('live_ready');
+                setVoiceStatus('Live voice active.');
+              }
               setMessages((prev) => [...prev, {
                 role: 'ai',
                 content: text
@@ -312,31 +383,42 @@ export default function Interview() {
           },
           onerror: (event) => {
             console.error('Gemini Live error:', event);
-            setError('Gemini Live voice connection failed. Falling back to browser voice mode.');
-            stopLiveVoiceSession();
+            if (liveConnectionAttemptRef.current !== attemptId) {
+              return;
+            }
+            setError('Gemini Live voice connection failed. Using standard voice mode instead.');
+            stopLiveVoiceSession('Using standard voice mode.');
           },
           onclose: () => {
-            liveSocketActiveRef.current = false;
-            if (liveMediaRecorderRef.current?.state === 'recording') {
-              liveMediaRecorderRef.current.stop();
+            if (liveConnectionAttemptRef.current !== attemptId) {
+              return;
             }
-            if (liveMediaStreamRef.current) {
-              liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
-              liveMediaStreamRef.current = null;
+            const closedDuringStartup = !liveStartupCompleteRef.current;
+            if (closedDuringStartup) {
+              setError('Gemini Live closed during startup. Using standard voice mode instead.');
             }
-            setIsLiveVoiceMode(false);
-            setIsConnectingVoice(false);
+            stopLiveVoiceSession('Using standard voice mode.');
           }
         }
       });
 
+      if (liveConnectionAttemptRef.current !== attemptId) {
+        session.close?.();
+        return;
+      }
       liveSessionRef.current = session;
 
       const recorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
       liveMediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = async (event) => {
-        if (!event.data || event.data.size === 0 || !liveSessionRef.current || !liveSocketActiveRef.current) {
+        if (
+          liveConnectionAttemptRef.current !== attemptId ||
+          !event.data ||
+          event.data.size === 0 ||
+          !liveSessionRef.current ||
+          !liveReadyRef.current
+        ) {
           return;
         }
         try {
@@ -350,7 +432,7 @@ export default function Interview() {
       };
 
       recorder.onstop = () => {
-        if (!liveSessionRef.current || !liveSocketActiveRef.current) {
+        if (!liveSessionRef.current || !liveReadyRef.current) {
           return;
         }
         try {
@@ -363,14 +445,25 @@ export default function Interview() {
       recorder.start(1000);
     } catch (err) {
       console.error(err);
+      if (liveConnectionAttemptRef.current !== attemptId) {
+        return;
+      }
       setError(err.message || 'Could not start Gemini Live voice mode');
-      stopLiveVoiceSession();
+      stopLiveVoiceSession('Using standard voice mode.');
     }
-  }, [isConnectingVoice, isLiveVoiceMode, stopLiveVoiceSession]);
+  }, [voiceMode, stopBrowserListening, activateFallbackVoice, stopLiveVoiceSession, clearLiveTimers]);
+
+  useEffect(() => () => {
+    stopBrowserListening();
+    activateFallbackVoice('Using standard voice mode.');
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+  }, [activateFallbackVoice, stopBrowserListening]);
 
   const toggleListening = useCallback(() => {
-    if (isLiveVoiceMode) {
-      stopLiveVoiceSession();
+    if (voiceMode === 'live_ready' || voiceMode === 'connecting') {
+      stopLiveVoiceSession('Using standard voice mode.');
       return;
     }
 
@@ -392,7 +485,9 @@ export default function Interview() {
     } catch {
       setError('Could not start voice input. Try refreshing the page and allowing microphone access.');
     }
-  }, [isListening, isLiveVoiceMode, stopLiveVoiceSession]);
+    setVoiceMode('fallback_active');
+    setVoiceStatus('Using standard voice mode.');
+  }, [isListening, voiceMode, stopLiveVoiceSession]);
 
   const toggleSpokenReplies = useCallback(() => {
     if (!window.speechSynthesis) {
@@ -496,6 +591,8 @@ export default function Interview() {
 
   const isDsa = topic === 'DSA';
   const isProject = topic === 'Project Experience';
+  const liveVoiceActive = voiceMode === 'live_ready';
+  const liveVoiceConnecting = voiceMode === 'connecting';
 
   return (
     <div className="h-screen bg-slate-950 flex flex-col font-sans text-slate-100 overflow-hidden">
@@ -519,26 +616,28 @@ export default function Interview() {
               onClick={toggleListening}
               disabled={isStarting || isTyping || isComplete}
               className={`p-2 rounded-lg transition-all ${
-                isListening || isLiveVoiceMode
+                isListening || liveVoiceActive || liveVoiceConnecting
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
               } disabled:opacity-50`}
-              title={isLiveVoiceMode ? 'Stop Gemini Live voice mode' : isListening ? 'Stop listening' : 'Start listening'}
+              title={liveVoiceActive || liveVoiceConnecting ? 'Stop live voice mode' : isListening ? 'Stop listening' : 'Start listening'}
             >
-              {isListening || isLiveVoiceMode ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {isListening || liveVoiceActive || liveVoiceConnecting ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
           )}
 
           <button
-            onClick={isLiveVoiceMode ? stopLiveVoiceSession : startLiveVoiceSession}
-            disabled={isStarting || isTyping || isComplete || isConnectingVoice}
+            onClick={liveVoiceActive || liveVoiceConnecting ? () => stopLiveVoiceSession('Using standard voice mode.') : startLiveVoiceSession}
+            disabled={isStarting || isTyping || isComplete}
             className={`px-3 py-2 rounded-lg text-sm transition-all ${
-              isLiveVoiceMode
+              liveVoiceActive
                 ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                : liveVoiceConnecting
+                  ? 'bg-amber-500/20 text-amber-200 hover:bg-amber-500/25'
                 : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             } disabled:opacity-50`}
           >
-            {isConnectingVoice ? 'Connecting Voice...' : isLiveVoiceMode ? 'Gemini Live On' : 'Start Gemini Live'}
+            {liveVoiceConnecting ? 'Connecting Voice...' : liveVoiceActive ? 'Gemini Live On' : 'Try Gemini Live'}
           </button>
 
           <button
@@ -649,7 +748,10 @@ export default function Interview() {
             {isDsa && problemContent && (
               <p className="text-sm text-slate-400 mt-3 line-clamp-3">{problemContent}</p>
             )}
-            {(speechSupported || isLiveVoiceMode) && liveTranscript && (
+            <div className="mt-3 rounded-lg border border-slate-700 bg-slate-900/60 px-3 py-2 text-sm text-slate-300">
+              {voiceStatus}
+            </div>
+            {(speechSupported || liveVoiceActive || liveVoiceConnecting) && liveTranscript && (
               <div className="mt-3 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
                 Listening: {liveTranscript}
               </div>
