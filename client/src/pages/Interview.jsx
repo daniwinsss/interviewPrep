@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { Bot, Send, ArrowLeft, Loader2, ExternalLink, Code2, ChevronDown, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { GoogleGenAI, Modality } from '@google/genai';
 import { apiUrl } from '../lib/api';
 
 const API = apiUrl('/api/ai/interview');
@@ -53,12 +54,17 @@ export default function Interview() {
   const [isListening, setIsListening] = useState(false);
   const [spokenReplyEnabled, setSpokenReplyEnabled] = useState(true);
   const [liveTranscript, setLiveTranscript] = useState('');
+  const [isLiveVoiceMode, setIsLiveVoiceMode] = useState(false);
+  const [isConnectingVoice, setIsConnectingVoice] = useState(false);
 
   const messagesEndRef = useRef(null);
   const codeMonitorTimerRef = useRef(null);
   const lastReviewedCodeRef = useRef('');
   const recognitionRef = useRef(null);
   const spokenMessageIdsRef = useRef(new Set());
+  const liveSessionRef = useRef(null);
+  const liveMediaRecorderRef = useRef(null);
+  const liveMediaStreamRef = useRef(null);
 
   const syncInterviewState = useCallback((interview) => {
     if (!interview) return;
@@ -130,6 +136,9 @@ export default function Interview() {
     if (!spokenReplyEnabled || !window.speechSynthesis) {
       return;
     }
+    if (isLiveVoiceMode) {
+      return;
+    }
 
     const lastAiMessage = [...messages].reverse().find((msg) => msg.role !== 'user');
     if (!lastAiMessage?.content) {
@@ -148,7 +157,7 @@ export default function Interview() {
     utterance.pitch = 1;
     utterance.volume = 1;
     window.speechSynthesis.speak(utterance);
-  }, [messages, spokenReplyEnabled]);
+  }, [messages, spokenReplyEnabled, isLiveVoiceMode]);
 
   const restartInterview = useCallback(() => {
     setSessionSeed((value) => value + 1);
@@ -173,11 +182,24 @@ export default function Interview() {
       setCode(STARTER_CODE.cpp);
       lastReviewedCodeRef.current = '';
       spokenMessageIdsRef.current.clear();
+      setIsLiveVoiceMode(false);
+      setIsConnectingVoice(false);
+      setLiveTranscript('');
 
       if (codeMonitorTimerRef.current) {
         clearTimeout(codeMonitorTimerRef.current);
         codeMonitorTimerRef.current = null;
       }
+
+      if (liveMediaRecorderRef.current?.state === 'recording') {
+        liveMediaRecorderRef.current.stop();
+      }
+      if (liveMediaStreamRef.current) {
+        liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
+        liveMediaStreamRef.current = null;
+      }
+      liveSessionRef.current?.close?.();
+      liveSessionRef.current = null;
 
       try {
         const res = await fetch(`${API}/start`, {
@@ -216,7 +238,116 @@ export default function Interview() {
     };
   }, [topic, sessionSeed, syncInterviewState]);
 
+  const stopLiveVoiceSession = useCallback(() => {
+    setIsLiveVoiceMode(false);
+    setIsConnectingVoice(false);
+    setLiveTranscript('');
+    if (liveMediaRecorderRef.current?.state === 'recording') {
+      liveMediaRecorderRef.current.stop();
+    }
+    if (liveMediaStreamRef.current) {
+      liveMediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      liveMediaStreamRef.current = null;
+    }
+    liveSessionRef.current?.close?.();
+    liveSessionRef.current = null;
+  }, []);
+
+  const startLiveVoiceSession = useCallback(async () => {
+    if (isLiveVoiceMode || isConnectingVoice) {
+      return;
+    }
+
+    setError('');
+    setIsConnectingVoice(true);
+
+    try {
+      const tokenResponse = await fetch(`${API}/live-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const tokenData = await tokenResponse.json();
+      if (!tokenResponse.ok) {
+        throw new Error(tokenData.error || 'Failed to get Gemini Live token');
+      }
+
+      const ai = new GoogleGenAI({
+        apiKey: tokenData.token,
+        apiVersion: 'v1alpha'
+      });
+
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      liveMediaStreamRef.current = mediaStream;
+
+      const session = await ai.live.connect({
+        model: 'gemini-live-2.5-flash-preview',
+        config: {
+          responseModalities: [Modality.AUDIO],
+          outputAudioTranscription: {},
+          inputAudioTranscription: {}
+        },
+        callbacks: {
+          onopen: () => {
+            setIsLiveVoiceMode(true);
+            setIsConnectingVoice(false);
+          },
+          onmessage: (event) => {
+            if (event.serverContent?.inputTranscription?.text) {
+              setLiveTranscript(event.serverContent.inputTranscription.text);
+            }
+
+            if (event.serverContent?.outputTranscription?.text) {
+              const text = event.serverContent.outputTranscription.text;
+              setMessages((prev) => [...prev, {
+                role: 'ai',
+                content: text
+              }]);
+            }
+          },
+          onerror: (event) => {
+            console.error('Gemini Live error:', event);
+            setError('Gemini Live voice connection failed. Falling back to browser voice mode.');
+            stopLiveVoiceSession();
+          },
+          onclose: () => {
+            setIsLiveVoiceMode(false);
+            setIsConnectingVoice(false);
+          }
+        }
+      });
+
+      liveSessionRef.current = session;
+
+      const recorder = new MediaRecorder(mediaStream, { mimeType: 'audio/webm' });
+      liveMediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = async (event) => {
+        if (!event.data || event.data.size === 0 || !liveSessionRef.current) {
+          return;
+        }
+        liveSessionRef.current.sendRealtimeInput({
+          media: event.data
+        });
+      };
+
+      recorder.onstop = () => {
+        liveSessionRef.current?.sendRealtimeInput({ audioStreamEnd: true });
+      };
+
+      recorder.start(1000);
+    } catch (err) {
+      console.error(err);
+      setError(err.message || 'Could not start Gemini Live voice mode');
+      stopLiveVoiceSession();
+    }
+  }, [isConnectingVoice, isLiveVoiceMode, stopLiveVoiceSession]);
+
   const toggleListening = useCallback(() => {
+    if (isLiveVoiceMode) {
+      stopLiveVoiceSession();
+      return;
+    }
+
     if (!recognitionRef.current) {
       setError('Voice input is not supported in this browser.');
       return;
@@ -235,7 +366,7 @@ export default function Interview() {
     } catch {
       setError('Could not start voice input. Try refreshing the page and allowing microphone access.');
     }
-  }, [isListening]);
+  }, [isListening, isLiveVoiceMode, stopLiveVoiceSession]);
 
   const toggleSpokenReplies = useCallback(() => {
     if (!window.speechSynthesis) {
@@ -362,15 +493,27 @@ export default function Interview() {
               onClick={toggleListening}
               disabled={isStarting || isTyping || isComplete}
               className={`p-2 rounded-lg transition-all ${
-                isListening
+                isListening || isLiveVoiceMode
                   ? 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
                   : 'bg-slate-800 text-slate-400 hover:bg-slate-700'
               } disabled:opacity-50`}
-              title={isListening ? 'Stop listening' : 'Start listening'}
+              title={isLiveVoiceMode ? 'Stop Gemini Live voice mode' : isListening ? 'Stop listening' : 'Start listening'}
             >
-              {isListening ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+              {isListening || isLiveVoiceMode ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
             </button>
           )}
+
+          <button
+            onClick={isLiveVoiceMode ? stopLiveVoiceSession : startLiveVoiceSession}
+            disabled={isStarting || isTyping || isComplete || isConnectingVoice}
+            className={`px-3 py-2 rounded-lg text-sm transition-all ${
+              isLiveVoiceMode
+                ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+            } disabled:opacity-50`}
+          >
+            {isConnectingVoice ? 'Connecting Voice...' : isLiveVoiceMode ? 'Gemini Live On' : 'Start Gemini Live'}
+          </button>
 
           <button
             onClick={toggleSpokenReplies}
@@ -480,7 +623,7 @@ export default function Interview() {
             {isDsa && problemContent && (
               <p className="text-sm text-slate-400 mt-3 line-clamp-3">{problemContent}</p>
             )}
-            {speechSupported && liveTranscript && (
+            {(speechSupported || isLiveVoiceMode) && liveTranscript && (
               <div className="mt-3 rounded-lg border border-blue-500/20 bg-blue-500/10 px-3 py-2 text-sm text-blue-200">
                 Listening: {liveTranscript}
               </div>
