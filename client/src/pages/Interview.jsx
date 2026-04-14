@@ -361,7 +361,11 @@ export default function Interview() {
             setLiveSessionStatus('warming_up');
             setVoiceStatus('Live voice connected. Verifying session stability...');
             liveStabilityTimerRef.current = setTimeout(() => {
-              if (liveConnectionAttemptRef.current !== attemptId || !liveSessionInitializedRef.current) {
+              if (
+                liveConnectionAttemptRef.current !== attemptId ||
+                !liveSessionInitializedRef.current ||
+                !liveSessionRef.current
+              ) {
                 return;
               }
               if (liveCloseQueuedRef.current || liveIntentionallyClosingRef.current) {
