@@ -1,100 +1,159 @@
 import express from 'express';
-import Interview from '../models/Interview.js';
-import { llmService } from '../services/llmService.js';
+import { interviewService } from '../services/interviewService.js';
 
 const router = express.Router();
 
-// 1. Start an interview
+function mapTopicToRoundType(topic = '') {
+  const normalized = String(topic).trim().toLowerCase();
+  if (normalized === 'dsa') return 'dsa';
+  if (normalized === 'behavioral' || normalized === 'behavioural') return 'behavioural';
+  if (normalized === 'system design') return 'system_design';
+  if (normalized === 'project experience' || normalized === 'project') return 'project';
+  if (normalized === 'core cs') return 'core_cs';
+  return normalized || 'dsa';
+}
+
+function mapRoundTypeToTopic(roundType = '') {
+  return {
+    dsa: 'DSA',
+    behavioural: 'Behavioral',
+    system_design: 'System Design',
+    project: 'Project Experience',
+    core_cs: 'Core CS'
+  }[roundType] || roundType;
+}
+
+function formatSessionResponse(session, messages = [], evaluations = [], report = null) {
+  return {
+    _id: session._id,
+    id: session._id,
+    topic: mapRoundTypeToTopic(session.config?.roundType),
+    roundType: session.config?.roundType,
+    difficulty: session.config?.difficulty,
+    durationMin: session.config?.durationMin,
+    company: session.config?.company,
+    userName: session.config?.userName,
+    completed: session.status === 'completed',
+    status: session.status,
+    currentPhase: session.currentPhase,
+    hintsUsed: session.hintsUsed,
+    question: session.questionSnapshot || null,
+    messages: messages.map((message) => ({
+      _id: message._id,
+      role: message.role === 'interviewer' ? 'ai' : 'user',
+      content: message.content,
+      phase: message.phase || null,
+      action: message.action || null,
+      screenshotUrl: message.screenshotUrl || null
+    })),
+    evaluations,
+    report
+  };
+}
+
 router.post('/start', async (req, res) => {
   try {
-    const { userId, topic } = req.body;
-    if (!topic) return res.status(400).json({ error: 'topic is required' });
-    const openingQuestion = llmService.getOpeningQuestion(topic, []);
-    if (!openingQuestion) {
-      return res.status(400).json({ error: 'No interview questions configured for this topic' });
-    }
-    
-    const interview = new Interview({
-      userId: userId || 'anonymous',
+    const {
+      userId,
+      userName,
       topic,
-      askedQuestions: [openingQuestion],
-      completed: false,
-      messages: [{ 
-        role: 'ai', 
-        content: `Welcome to your ${topic} interview. First question: ${openingQuestion}`,
-      }]
+      roundType,
+      difficulty = 'medium',
+      durationMin = 45,
+      company = 'generic',
+      repoUrl = ''
+    } = req.body;
+
+    const { session, message } = await interviewService.startSession({
+      userId: userId || 'anonymous',
+      userName: userName || 'Candidate',
+      roundType: mapTopicToRoundType(roundType || topic),
+      difficulty,
+      durationMin,
+      company,
+      repoUrl
     });
-    
-    await interview.save();
-    res.json(interview);
+
+    res.json(formatSessionResponse(session, [message]));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 2. Answer a question
 router.post('/answer', async (req, res) => {
   try {
-    const { interviewId, answer } = req.body;
-    if (!interviewId || !answer?.trim()) {
-      return res.status(400).json({ error: 'interviewId and answer are required' });
-    }
-    
-    const interview = await Interview.findById(interviewId);
-    if (!interview) return res.status(404).json({ error: 'Interview not found' });
-    if (interview.completed) {
-      return res.status(400).json({ error: 'This interview session is already complete' });
+    const { sessionId, interviewId, answer } = req.body;
+    const activeSessionId = sessionId || interviewId;
+
+    if (!activeSessionId || !answer?.trim()) {
+      return res.status(400).json({ error: 'sessionId and answer are required' });
     }
 
-    // Push the user's answer into history
-    interview.messages.push({ role: 'user', content: answer });
+    const result = await interviewService.answerSession(activeSessionId, answer.trim());
+    const sessionState = await interviewService.getSession(activeSessionId);
 
-    // Ask Gemini/fallback evaluator for feedback
-    const evaluation = await llmService.evaluateInterviewAnswer(interview.topic, interview.messages);
-    const nextQuestion = llmService.getNextQuestion(interview.topic, interview.askedQuestions);
-    
-    // Assign rating to the user's answer
-    interview.messages[interview.messages.length - 1].rating = evaluation.rating;
-    
-    if (nextQuestion) {
-      interview.askedQuestions.push(nextQuestion);
-      interview.messages.push({ 
-        role: 'ai', 
-        content: `${evaluation.feedback}\n\nNext Question: ${nextQuestion}` 
-      });
-    } else {
-      interview.completed = true;
-      interview.messages.push({
-        role: 'ai',
-        content: `${evaluation.feedback}\n\nYou have completed this interview set. Change topic or restart to continue practicing.`
-      });
-    }
-
-    const ratedUserMessages = interview.messages.filter((msg) => msg.role === 'user' && typeof msg.rating === 'number');
-    if (ratedUserMessages.length > 0) {
-      interview.overallScore = Math.round(
-        ratedUserMessages.reduce((sum, msg) => sum + msg.rating, 0) / ratedUserMessages.length
-      );
-    }
-
-    await interview.save();
     res.json({
-      evaluation: {
-        ...evaluation,
-        nextQuestion: nextQuestion || null
-      },
-      interview
+      evaluation: result.evaluation,
+      report: result.report,
+      interview: formatSessionResponse(
+        sessionState.session,
+        sessionState.messages,
+        sessionState.evaluations,
+        sessionState.report
+      )
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// 3. Get Interview history
+router.post('/code-feedback', async (req, res) => {
+  try {
+    const { sessionId, interviewId, code, language } = req.body;
+    const activeSessionId = sessionId || interviewId;
+    if (!activeSessionId || !String(code || '').trim()) {
+      return res.status(400).json({ error: 'sessionId and code are required' });
+    }
+
+    const result = await interviewService.reviewCode(activeSessionId, code, language || 'cpp');
+    res.json({
+      success: true,
+      skipped: Boolean(result.skipped),
+      interviewerMessage: result.interviewerMessage,
+      session: result.session,
+      messages: result.messages
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/:id/hint', async (req, res) => {
+  try {
+    const result = await interviewService.requestHint(req.params.id);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/:id/report', async (req, res) => {
+  try {
+    const report = await interviewService.getReport(req.params.id);
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.get('/:id', async (req, res) => {
   try {
-    const interview = await Interview.findById(req.params.id);
-    res.json(interview);
+    const state = await interviewService.getSession(req.params.id);
+    if (!state.session) {
+      return res.status(404).json({ error: 'Interview session not found' });
+    }
+
+    res.json(formatSessionResponse(state.session, state.messages, state.evaluations, state.report));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
