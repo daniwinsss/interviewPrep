@@ -24,8 +24,14 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 const aiLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   max: 10,
-  message: 'AI rate limit exceeded. Please try again later.',
-  skip: () => !isProduction
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => !isProduction || req.path === '/interview/live-token',
+  handler: (req, res) => {
+    res.status(429).json({
+      error: 'AI rate limit exceeded. Please try again later.'
+    });
+  }
 });
 
 const generalLimiter = rateLimit({

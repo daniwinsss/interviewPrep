@@ -33,6 +33,19 @@ function getProblemData(interview) {
   };
 }
 
+async function readApiResponse(response) {
+  const raw = await response.text();
+  if (!raw) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { error: raw };
+  }
+}
+
 export default function Interview() {
   const [topic, setTopic] = useState('DSA');
   const [repoUrl, setRepoUrl] = useState('');
@@ -262,7 +275,7 @@ export default function Interview() {
           })
         });
 
-        const data = await res.json();
+        const data = await readApiResponse(res);
         if (!res.ok) {
           throw new Error(data.error || 'Failed to start interview');
         }
@@ -325,7 +338,7 @@ export default function Interview() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
-      const tokenData = await tokenResponse.json();
+      const tokenData = await readApiResponse(tokenResponse);
       if (!tokenResponse.ok) {
         throw new Error(tokenData.error || 'Failed to get Gemini Live token');
       }
@@ -553,7 +566,7 @@ export default function Interview() {
         })
       });
 
-      const data = await res.json();
+      const data = await readApiResponse(res);
       if (!res.ok) {
         throw new Error(data.error || 'Failed to review code');
       }
@@ -607,7 +620,7 @@ export default function Interview() {
         body: JSON.stringify({ sessionId, answer })
       });
 
-      const data = await res.json();
+      const data = await readApiResponse(res);
       if (!res.ok) {
         throw new Error(data.error || 'Failed to continue interview');
       }
