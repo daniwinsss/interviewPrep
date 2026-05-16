@@ -1,11 +1,10 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, Circle, RotateCcw, Trophy, BookOpen, Cpu, Globe, Binary, Search, Shuffle, ChevronRight, ChevronDown, Tag } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Circle, RotateCcw, Trophy, BookOpen, Cpu, Globe, Binary, Search, Shuffle, ChevronRight, ChevronDown, Tag, Monitor, Layers, ShieldCheck, Zap } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import renderMathInElement from 'katex/dist/contrib/auto-render';
 import { apiUrl } from '../lib/api';
 import Badge from '../components/ui/Badge';
-import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 
 // ─── API Config ────────────────────────────────────────────────────────────────
@@ -17,51 +16,35 @@ const QUESTIONS_PER_QUIZ = 10;
 const SUBJECTS = [
   {
     id: 'dsa',
-    label: 'Data Structures & Algorithms',
+    label: 'DATA STRUCTURES & ALGORITHMS',
     domain: 'Data Structure and Algorithm',
-    offsets: [0, 100, 200, 300],
     icon: Binary,
-    color: 'from-white/10 to-white/5',
-    border: 'border-white/15 hover:border-white/30',
-    badge: 'bg-white/10 text-white',
-    iconColor: 'text-white',
-    ring: 'ring-white/20',
+    description: 'Master the fundamental logic of computation.',
+    accent: 'emerald'
   },
   {
     id: 'arch',
-    label: 'Computer Organization',
+    label: 'COMPUTER ORGANIZATION',
     domain: 'Computer Organization',
-    offsets: [400, 500, 600, 700, 800, 900],
     icon: Cpu,
-    color: 'from-white/10 to-white/5',
-    border: 'border-white/15 hover:border-white/30',
-    badge: 'bg-white/10 text-white',
-    iconColor: 'text-white',
-    ring: 'ring-white/20',
+    description: 'Deconstruct the architecture of silicon.',
+    accent: 'purple'
   },
   {
     id: 'cn',
-    label: 'Computer Networks',
+    label: 'COMPUTER NETWORKS',
     domain: 'Computer Network',
-    offsets: [1000],
     icon: Globe,
-    color: 'from-white/10 to-white/5',
-    border: 'border-white/15 hover:border-white/30',
-    badge: 'bg-white/10 text-white',
-    iconColor: 'text-white',
-    ring: 'ring-white/20',
+    description: 'Map the global neural infrastructure.',
+    accent: 'blue'
   },
   {
     id: 'os',
-    label: 'Operating Systems',
+    label: 'OPERATING SYSTEMS',
     domain: 'Operating System',
-    offsets: [1100, 1200, 1236],
-    icon: BookOpen,
-    color: 'from-white/10 to-white/5',
-    border: 'border-white/15 hover:border-white/30',
-    badge: 'bg-white/10 text-white',
-    iconColor: 'text-white',
-    ring: 'ring-white/20',
+    icon: Monitor,
+    description: 'Interface with the core system kernel.',
+    accent: 'rose'
   },
 ];
 
@@ -75,16 +58,9 @@ function shuffle(arr) {
   return a;
 }
 
-/**
- * Clean question / option text coming from the HuggingFace dataset.
- * - Decode common HTML entities
- * - Remove stray LaTeX artifacts like \( \) wrappers when possible
- * - Collapse excessive whitespace
- */
 function cleanText(raw) {
   if (!raw) return '';
   return raw
-    // HTML entities
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
@@ -97,21 +73,6 @@ function cleanText(raw) {
     .replace(/&times;/g, '×')
     .replace(/&divide;/g, '÷')
     .replace(/&infin;/g, '∞')
-    .replace(/&alpha;/g, 'α')
-    .replace(/&beta;/g, 'β')
-    .replace(/&gamma;/g, 'γ')
-    .replace(/&theta;/g, 'θ')
-    .replace(/&lambda;/g, 'λ')
-    .replace(/&pi;/g, 'π')
-    .replace(/&sigma;/g, 'σ')
-    .replace(/&Sigma;/g, 'Σ')
-    .replace(/&omega;/g, 'ω')
-    // Unescape backslash-escaped common chars
-    .replace(/\\n/g, '\n')
-    .replace(/\\t/g, '  ')
-    // Repeated whitespace / newlines
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -129,44 +90,56 @@ function transformRow(row) {
 // ─── Phase 1: Subject Selection ────────────────────────────────────────────────
 function SubjectSelection({ onSelect }) {
   return (
-    <div className="min-h-screen page flex flex-col">
-      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-[#0f0f10]/80 backdrop-blur-xl">
-        <Link to="/" className="text-white/60 hover:text-white transition-colors">
-          <ArrowLeft className="w-4 h-4" />
+    <div className="min-h-screen flex flex-col bg-[#050505]">
+      <header className="h-20 border-b border-white/5 flex items-center px-8 bg-[#0b0b0c] relative z-20 shadow-xl">
+        <Link to="/" className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
+          <ArrowLeft className="w-5 h-5" />
         </Link>
-        <div className="ml-4">
-          <h1 className="font-semibold text-lg text-white">Core Subjects Practice</h1>
-          <p className="text-xs text-white/60">Choose a subject to begin</p>
+        <div className="ml-6">
+          <h1 className="font-bold text-white tracking-tight uppercase text-sm">Theory Terminal</h1>
+          <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Intellectual Core</p>
         </div>
       </header>
 
-      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="max-w-4xl w-full">
-          <div className="text-center mb-10">
-            <h2 className="text-3xl md:text-4xl font-semibold text-gradient mb-3">Pick a subject</h2>
-            <p className="text-white/60">Browse all questions or start a 10-question sprint.</p>
-          </div>
+      <main className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden">
+        {/* Background Depth */}
+        <div className="absolute inset-0 z-0 opacity-20">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-accent/10 blur-[180px] rounded-full" />
+        </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {SUBJECTS.map((subject, idx) => {
-              const Icon = subject.icon;
-              return (
-                <motion.button
-                  key={subject.id}
-                  onClick={() => onSelect(subject)}
-                  className={`group relative bg-gradient-to-br ${subject.color} border ${subject.border} rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-float cursor-pointer`}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: idx * 0.05 }}
-                >
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-white text-black">
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <h3 className="font-semibold text-white text-base leading-snug mb-2">{subject.label}</h3>
-                  <Badge variant="outline">MCQ · Browse + Quiz</Badge>
-                </motion.button>
-              );
-            })}
+        <div className="max-w-5xl w-full z-10">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
+            <h2 className="text-5xl font-black text-white tracking-tighter mb-4">CHOOSE YOUR SECTOR</h2>
+            <p className="text-sm font-bold text-white/30 uppercase tracking-[0.4em]">Initialize comprehensive theoretical practice</p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {SUBJECTS.map((subject, idx) => (
+              <motion.button
+                key={subject.id}
+                onClick={() => onSelect(subject)}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.1 }}
+                className="group surface-strong p-8 rounded-[40px] border-white/5 text-left transition-all hover:border-accent/30 hover:shadow-[0_0_50px_rgba(124,140,255,0.1)] relative overflow-hidden"
+              >
+                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all group-hover:scale-110">
+                  <subject.icon className="w-32 h-32" />
+                </div>
+                
+                <div className="w-14 h-14 rounded-2xl bg-white text-black flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                  <subject.icon className="w-6 h-6" />
+                </div>
+                
+                <h3 className="text-lg font-bold text-white mb-2 tracking-tight group-hover:text-accent transition-colors">{subject.label}</h3>
+                <p className="text-sm text-white/40 leading-relaxed mb-6">{subject.description}</p>
+                
+                <div className="flex items-center gap-3">
+                  <Badge className="bg-white/5 text-white/40 border-white/10 uppercase tracking-widest text-[9px] font-bold">Comprehensive Browse</Badge>
+                  <Badge className="bg-accent/10 text-accent border-accent/20 uppercase tracking-widest text-[9px] font-bold">10-Q Sprint</Badge>
+                </div>
+              </motion.button>
+            ))}
           </div>
         </div>
       </main>
@@ -174,70 +147,21 @@ function SubjectSelection({ onSelect }) {
   );
 }
 
-// ─── Topic Group (inside QuestionList) ────────────────────────────────────────
-function TopicGroup({ topic, questions, allQuestions, onStartFromQuestion, globalStart, subject }) {
-  const [open, setOpen] = useState(true);
-  return (
-    <div className="mb-3">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center gap-3 px-4 py-2 rounded-xl bg-slate-900/40 hover:bg-slate-900/70 border border-slate-800/50 transition-all group mb-1"
-      >
-        <Tag className={`w-3.5 h-3.5 shrink-0 ${subject.iconColor}`} />
-        <span className="text-xs font-semibold text-slate-300 group-hover:text-white transition-colors flex-1 text-left tracking-wide">
-          {topic}
-        </span>
-        <span className="text-xs text-slate-500">{questions.length} Q</span>
-        {open
-          ? <ChevronDown className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-          : <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-        }
-      </button>
-      {open && (
-        <div className="flex flex-col gap-1 pl-5">
-          {questions.map((q, i) => (
-            <button
-              key={q.id}
-              onClick={() => onStartFromQuestion(q)}
-              className="group/row w-full text-left flex items-start gap-3 bg-slate-900/50 hover:bg-slate-800/60 border border-slate-800/60 hover:border-slate-700/60 rounded-xl px-4 py-3 transition-all"
-            >
-              <span className="text-xs font-bold text-slate-600 w-7 shrink-0 text-right mt-0.5">
-                {globalStart + i}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-slate-200 leading-relaxed group-hover/row:text-white transition-colors">
-                  {q.question}
-                </p>
-              </div>
-              <ChevronRight className="w-4 h-4 text-slate-600 group-hover/row:text-slate-400 shrink-0 transition-colors mt-0.5" />
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Phase 2: Question List (topic-grouped) ────────────────────────────────────
+// ─── Phase 2: Question List ────────────────────────────────────────────────────
 function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion, onBack }) {
   const [search, setSearch] = useState('');
   const [groupByTopic, setGroupByTopic] = useState(true);
-  const Icon = subject.icon;
 
   const filtered = useMemo(() => {
     if (!search.trim()) return allQuestions;
     const q = search.toLowerCase();
-    return allQuestions.filter(q_ =>
-      q_.question.toLowerCase().includes(q) ||
-      q_.subDomain.toLowerCase().includes(q)
-    );
+    return allQuestions.filter(q_ => q_.question.toLowerCase().includes(q) || q_.subDomain.toLowerCase().includes(q));
   }, [allQuestions, search]);
 
-  // Group by subDomain
   const topicGroups = useMemo(() => {
     const groups = {};
     filtered.forEach(q => {
-      const key = q.subDomain || 'General';
+      const key = q.subDomain || 'CORE';
       if (!groups[key]) groups[key] = [];
       groups[key].push(q);
     });
@@ -245,110 +169,63 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
   }, [filtered]);
 
   return (
-    <div className="min-h-screen page flex flex-col">
-      {/* Header */}
-      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-[#0f0f10]/80 backdrop-blur-xl gap-4 shrink-0">
-        <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
+    <div className="h-screen flex flex-col bg-[#050505]">
+      <header className="h-20 border-b border-white/5 flex items-center px-8 bg-[#0b0b0c] gap-6 z-20 shadow-xl">
+        <button onClick={onBack} className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <Badge variant="outline">{subject.label}</Badge>
-        <span className="text-white/50 text-sm">{allQuestions.length} questions</span>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{subject.label}</span>
+          <span className="text-sm font-bold text-white">{allQuestions.length} DATA POINTS</span>
+        </div>
+        
         <div className="flex-1" />
-        <button
-          onClick={() => setGroupByTopic(g => !g)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all mr-2 ${
-            groupByTopic
-              ? 'bg-white text-black border-white'
-              : 'bg-white/5 border-white/15 text-white/60 hover:text-white'
-          }`}
-        >
-          <Tag className="w-3 h-3" />
-          Topics
-        </button>
-        <Button size="sm" onClick={onStartQuiz} icon={<Shuffle className="w-4 h-4" />}>
-          Random 10-Q Quiz
+        
+        <Button onClick={onStartQuiz} className="h-10 px-6">
+          <Shuffle className="w-4 h-4 mr-2" />
+          START RANDOM SPRINT
         </Button>
       </header>
 
-      {/* Search */}
-      <div className="px-6 py-4 border-b border-white/10 shrink-0">
-        <div className="relative max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+      <div className="px-8 py-6 border-b border-white/5 bg-white/[0.01]">
+        <div className="relative max-w-2xl">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search questions or topics…"
-            className="input pl-9"
+            placeholder="FILTER BY TOPIC OR CONTENT SIGNAL..."
+            className="w-full bg-black/40 border border-white/5 rounded-2xl px-12 py-3 text-xs font-bold text-white/80 focus:outline-none focus:border-white/20 transition-all placeholder:text-white/10 uppercase tracking-widest"
           />
         </div>
       </div>
 
-      {/* Topic summary chips */}
-      {groupByTopic && (
-        <div className="px-6 py-3 border-b border-white/10 flex flex-wrap gap-2 shrink-0">
+      <main className="flex-1 overflow-y-auto custom-scrollbar p-8">
+        <div className="max-w-4xl mx-auto space-y-12">
           {topicGroups.map(([topic, qs]) => (
-            <Badge key={topic} variant="outline">
-              {topic} <span className="opacity-60">({qs.length})</span>
-            </Badge>
-          ))}
-        </div>
-      )}
-
-      {/* Question List */}
-      <main className="flex-1 overflow-y-auto px-6 py-4">
-        <div className="max-w-4xl mx-auto">
-          {filtered.length === 0 && (
-            <Card hover={false} className="text-center py-12">
-              <h3 className="text-lg font-semibold">No questions match your search.</h3>
-              <p className="text-white/60 mt-2">Try a broader keyword.</p>
-            </Card>
-          )}
-
-          {groupByTopic ? (
-            (() => {
-              let running = 1;
-              return topicGroups.map(([topic, qs]) => {
-                const start = running;
-                running += qs.length;
-                return (
-                  <TopicGroup
-                    key={topic}
-                    topic={topic}
-                    questions={qs}
-                    allQuestions={allQuestions}
-                    onStartFromQuestion={onStartFromQuestion}
-                    globalStart={start}
-                    subject={subject}
-                  />
-                );
-              });
-            })()
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {filtered.map((q, idx) => (
-                <button
-                  key={q.id}
-                  onClick={() => onStartFromQuestion(q)}
-                  className="group w-full text-left flex items-start gap-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl px-4 py-3.5 transition-all"
-                >
-                  <span className="text-xs font-bold text-white/40 w-8 shrink-0 text-right mt-0.5">
-                    {allQuestions.indexOf(q) + 1}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white leading-relaxed group-hover:text-white transition-colors">
-                      {q.question}
-                    </p>
-                    {q.subDomain && (
-                      <Badge className="mt-2" variant="outline">
-                        {q.subDomain}
-                      </Badge>
-                    )}
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-white shrink-0 transition-colors mt-0.5" />
-                </button>
-              ))}
+            <div key={topic} className="space-y-4">
+              <div className="flex items-center gap-4 ml-2">
+                <span className="text-[10px] font-black text-accent uppercase tracking-[0.4em]">{topic}</span>
+                <div className="h-px flex-1 bg-white/5" />
+                <span className="text-[9px] font-bold text-white/20">{qs.length}</span>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-2">
+                {qs.map((q) => (
+                  <button
+                    key={q.id}
+                    onClick={() => onStartFromQuestion(q)}
+                    className="group surface p-6 rounded-3xl border-white/5 flex items-start gap-6 text-left transition-all hover:bg-white/[0.02] hover:border-white/10"
+                  >
+                    <span className="text-[10px] font-bold text-white/20 mt-1 uppercase">QID</span>
+                    <div className="flex-1">
+                      <p className="text-sm text-white/70 leading-relaxed group-hover:text-white transition-colors">{q.question}</p>
+                    </div>
+                    <ChevronRight className="w-5 h-5 text-white/10 group-hover:text-accent transition-colors" />
+                  </button>
+                ))}
+              </div>
             </div>
-          )}
+          ))}
         </div>
       </main>
     </div>
@@ -362,10 +239,8 @@ function Quiz({ subject, questions, onFinish, onBack }) {
   const [isAnswered, setIsAnswered] = useState(false);
   const [score, setScore] = useState(0);
   const containerRef = useRef(null);
-
   const question = questions[currentIdx];
 
-  // Auto-render math when question changes
   useEffect(() => {
     if (containerRef.current) {
       renderMathInElement(containerRef.current, {
@@ -380,7 +255,7 @@ function Quiz({ subject, questions, onFinish, onBack }) {
     }
   }, [question, isAnswered]);
 
-  const progress = ((currentIdx) / questions.length) * 100;
+  const progress = ((currentIdx + (isAnswered ? 1 : 0)) / questions.length) * 100;
 
   const handleSelect = (idx) => {
     if (isAnswered) return;
@@ -395,118 +270,127 @@ function Quiz({ subject, questions, onFinish, onBack }) {
       setSelected(null);
       setIsAnswered(false);
     } else {
-      onFinish(null, score + (selected === question.correct ? 1 : 0));
+      onFinish(null, score);
     }
   };
 
-  const Icon = subject.icon;
-
   return (
-    <div className="min-h-screen page flex flex-col">
-      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-[#0f0f10]/80 backdrop-blur-xl gap-4">
-        <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
+    <div className="h-screen flex flex-col bg-[#050505]">
+      <header className="h-20 border-b border-white/5 flex items-center px-8 bg-[#0b0b0c] gap-6 relative z-30 shadow-xl">
+        <button onClick={onBack} className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <Badge variant="outline">{subject.label}</Badge>
+        <div className="flex flex-col">
+          <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{subject.label}</span>
+          <span className="text-sm font-bold text-white uppercase tracking-widest">SPRINT EVALUATION</span>
+        </div>
         <div className="flex-1" />
-        <span className="text-sm font-medium text-white/60">
-          {currentIdx + 1} <span className="text-white/30">/</span> {questions.length}
-        </span>
+        <div className="h-10 px-4 rounded-xl border border-white/5 bg-white/[0.02] flex items-center justify-center gap-2">
+          <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Signal</span>
+          <span className="text-sm font-bold text-white">{currentIdx + 1} / {questions.length}</span>
+        </div>
       </header>
 
-      {/* Progress bar */}
-      <div className="h-1 bg-white/10">
-        <div
-          className="h-full bg-white transition-all duration-500"
-          style={{ width: `${progress}%` }}
+      {/* Cinematic Progress Bar */}
+      <div className="h-1 bg-white/5 relative z-30">
+        <motion.div
+          className="h-full bg-accent shadow-[0_0_15px_rgba(124,140,255,0.5)]"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
         />
       </div>
 
-      <main className="flex-1 flex items-center justify-center p-6">
-        <div className="max-w-2xl w-full">
-          <div ref={containerRef} className="surface-strong p-8">
-
-            {/* Question meta */}
-            <div className="flex items-center gap-2 mb-4">
-                <span className="text-xs font-semibold text-white/40 uppercase tracking-[0.3em]">
-                  Question {currentIdx + 1}
-                </span>
-                {question.subDomain && (
-                  <Badge variant="outline">{question.subDomain}</Badge>
-                )}
-              </div>
-
-            {/* Question text — styled with proper readability */}
-            <div className="mb-7">
-              <p className="text-base font-medium text-white leading-relaxed whitespace-pre-wrap">
-                {question.question}
-              </p>
-            </div>
-
-            {/* Options */}
-            <div className="flex flex-col gap-3">
-              {question.options.map((opt, idx) => {
-                const letter = ['A', 'B', 'C', 'D'][idx];
-                let style = 'border-white/10 hover:border-white/30 bg-white/5 text-white/70 hover:text-white';
-
-                if (isAnswered) {
-                  if (idx === question.correct) {
-                    style = 'border-white bg-white text-black';
-                  } else if (idx === selected) {
-                    style = 'border-white/40 bg-white/10 text-white';
-                  } else {
-                    style = 'border-white/10 bg-white/5 opacity-50 text-white/40';
-                  }
-                }
-
-                return (
-                  <button
-                    key={idx}
-                    onClick={() => handleSelect(idx)}
-                    disabled={isAnswered}
-                    className={`text-left p-4 rounded-xl border flex items-start gap-3 transition-all duration-200 ${style} ${!isAnswered ? 'cursor-pointer' : 'cursor-default'}`}
-                  >
-                    <span className={`text-xs font-bold w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                      isAnswered && idx === question.correct ? 'bg-black text-white' :
-                      isAnswered && idx === selected ? 'bg-white/20 text-white' :
-                      'bg-white/10 text-white/50'
-                    }`}>{letter}</span>
-                    {isAnswered && idx === question.correct ? (
-                      <CheckCircle2 className="w-4 h-4 text-white shrink-0 mt-0.5" />
-                    ) : isAnswered && idx === selected ? (
-                      <XCircle className="w-4 h-4 text-white/60 shrink-0 mt-0.5" />
-                    ) : (
-                      <Circle className="w-4 h-4 text-white/30 shrink-0 mt-0.5" />
-                    )}
-                    <span className="leading-relaxed text-sm whitespace-pre-wrap">{opt}</span>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Explanation + Next */}
-            {isAnswered && (
-              <div className="mt-7 pt-6 border-t border-white/10">
-                {question.explanation && (
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
-                    <p className="text-xs font-bold text-white/50 uppercase tracking-[0.3em] mb-2">Explanation</p>
-                    <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
-                      {question.explanation}
-                    </p>
-                  </div>
-                )}
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-semibold text-white">
-                    {selected === question.correct ? 'Correct' : 'Incorrect'}
-                  </span>
-                  <Button onClick={handleNext} size="sm">
-                    {currentIdx < questions.length - 1 ? 'Next Question →' : 'See Results'}
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
+      <main className="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
+        {/* Background Visuals */}
+        <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/20 blur-[150px] rounded-full" />
         </div>
+
+        <AnimatePresence mode="wait">
+          <motion.div 
+            key={currentIdx}
+            initial={{ opacity: 0, scale: 0.98, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98, y: -10 }}
+            className="max-w-3xl w-full z-10"
+          >
+            <div ref={containerRef} className="surface-strong p-12 rounded-[50px] border-white/5 relative overflow-hidden shadow-2xl">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.03]">
+                <Layers className="w-48 h-48" />
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_10px_rgba(124,140,255,0.5)]" />
+                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em]">{question.subDomain || 'CORE LOGIC'}</span>
+                </div>
+
+                <h3 className="text-2xl font-bold text-white leading-tight mb-12 tracking-tight">{question.question}</h3>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {question.options.map((opt, idx) => {
+                    const letter = ['A', 'B', 'C', 'D'][idx];
+                    let style = 'border-white/5 bg-white/[0.02] text-white/60 hover:bg-white/[0.05] hover:border-white/10 hover:text-white';
+                    
+                    if (isAnswered) {
+                      if (idx === question.correct) {
+                        style = 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]';
+                      } else if (idx === selected) {
+                        style = 'border-rose-500/50 bg-rose-500/10 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]';
+                      } else {
+                        style = 'border-white/5 bg-white/[0.01] text-white/20 opacity-40';
+                      }
+                    }
+
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => handleSelect(idx)}
+                        disabled={isAnswered}
+                        className={`group p-6 rounded-[32px] border flex items-center gap-6 text-left transition-all duration-300 ${style}`}
+                      >
+                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-xs transition-all ${
+                          isAnswered && idx === question.correct ? 'bg-emerald-500 text-black shadow-lg' :
+                          isAnswered && idx === selected ? 'bg-rose-500 text-white' :
+                          'bg-white/5 text-white/40 group-hover:bg-white/10 group-hover:text-white'
+                        }`}>
+                          {letter}
+                        </div>
+                        <span className="flex-1 text-sm font-medium leading-relaxed">{opt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {isAnswered && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-12 pt-8 border-t border-white/5">
+                    {question.explanation && (
+                      <div className="bg-white/5 border border-white/5 rounded-3xl p-6 mb-8 relative">
+                        <div className="flex items-center gap-2 mb-4">
+                          <ShieldCheck className="w-4 h-4 text-accent" />
+                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Logic Validation</span>
+                        </div>
+                        <p className="text-sm text-white/60 leading-relaxed italic">{question.explanation}</p>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-3 h-3 rounded-full ${selected === question.correct ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`} />
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${selected === question.correct ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {selected === question.correct ? 'Pattern Matches' : 'Anomaly Detected'}
+                        </span>
+                      </div>
+                      <Button onClick={handleNext} className="h-14 px-8 rounded-2xl">
+                        {currentIdx < questions.length - 1 ? 'PROCEED TO NEXT SIGNAL' : 'ANALYZE RESULTS'}
+                        <ChevronRight className="w-4 h-4 ml-2" />
+                      </Button>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </main>
     </div>
   );
@@ -515,58 +399,65 @@ function Quiz({ subject, questions, onFinish, onBack }) {
 // ─── Phase 4: Results ──────────────────────────────────────────────────────────
 function Results({ subject, score, total, onRetry, onBrowse, onChangeSubject }) {
   const pct = Math.round((score / total) * 100);
-  const grade = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : pct >= 40 ? 'Needs Work' : 'Keep Practicing';
-  const gradeColor = 'text-white';
-  const barColor = 'bg-white';
+  const grade = pct >= 80 ? 'OPTIMIZED' : pct >= 60 ? 'STABLE' : pct >= 40 ? 'FRAGMENTED' : 'UNSTABLE';
 
   return (
-    <div className="min-h-screen page flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full surface-strong p-10 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-white text-black flex items-center justify-center mx-auto mb-6">
-          <Trophy className="w-8 h-8" />
+    <div className="h-screen flex flex-col items-center justify-center p-8 bg-[#050505] relative overflow-hidden">
+      {/* Background Depth */}
+      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.02]">
+        <Trophy className="w-[40vw] h-[40vw]" />
+      </div>
+
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.9 }} 
+        animate={{ opacity: 1, scale: 1 }} 
+        className="max-w-md w-full surface-strong p-12 rounded-[60px] border-white/5 text-center shadow-2xl relative z-10"
+      >
+        <div className="w-20 h-20 rounded-[32px] bg-white text-black flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(255,255,255,0.2)]">
+          <Zap className="w-10 h-10" />
         </div>
 
-        <h2 className="text-2xl font-semibold mb-1">Practice Complete</h2>
-        <p className="text-white/60 text-sm mb-8">{subject.label}</p>
+        <h2 className="text-3xl font-black text-white tracking-tighter mb-2">SYSTEM SCAN COMPLETE</h2>
+        <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] mb-12">{subject.label}</p>
 
-        <div className="mb-8">
-          <div className="text-6xl font-bold mb-2">
-            <span className="text-white">{score}</span>
-            <span className="text-slate-600 text-3xl">/{total}</span>
+        <div className="mb-12">
+          <div className="text-8xl font-black text-white tracking-tighter mb-4">
+            {score}<span className="text-white/10 text-4xl">/{total}</span>
           </div>
-          <div className={`text-lg font-semibold ${gradeColor}`}>{grade}</div>
-          <div className="text-white/60 text-sm">{pct}% correct</div>
+          <div className="text-xs font-bold text-accent uppercase tracking-[0.5em]">{grade} OUTPUT</div>
+          <div className="text-[9px] font-bold text-white/20 mt-2">EFFICIENCY: {pct}%</div>
         </div>
 
-        <div className="h-2 bg-white/10 rounded-full mb-8 overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-700 ${barColor}`}
-            style={{ width: `${pct}%` }}
+        <div className="h-1.5 bg-white/5 rounded-full mb-12 overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${pct}%` }}
+            className="h-full bg-accent shadow-[0_0_15px_rgba(124,140,255,0.5)]"
           />
         </div>
 
-        <div className="flex flex-col gap-3">
-          <Button onClick={onRetry} icon={<RotateCcw className="w-4 h-4" />}>
-            Random Quiz Again
+        <div className="grid grid-cols-1 gap-3">
+          <Button onClick={onRetry} className="h-14 rounded-2xl">
+            INITIALIZE NEW SPRINT
           </Button>
-          <Button variant="secondary" onClick={onBrowse}>
-            Browse Questions
+          <Button variant="secondary" onClick={onBrowse} className="h-14 rounded-2xl">
+            BROWSE DATA CORE
           </Button>
-          <Button variant="secondary" onClick={onChangeSubject}>
-            Choose Another Subject
+          <Button variant="secondary" onClick={onChangeSubject} className="h-14 rounded-2xl">
+            SWITCH SECTOR
           </Button>
-          <Link to="/" className="text-white/50 hover:text-white text-sm py-1 transition-colors">
-            Return Home
+          <Link to="/" className="text-[9px] font-bold text-white/20 hover:text-white uppercase tracking-widest mt-6 transition-colors">
+            RETURN TO COMMAND CENTER
           </Link>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
 
 // ─── Root MCQ Page ─────────────────────────────────────────────────────────────
 export default function MCQ() {
-  const [phase, setPhase] = useState('select'); // 'select' | 'loading' | 'list' | 'quiz' | 'results'
+  const [phase, setPhase] = useState('select'); 
   const [subject, setSubject] = useState(null);
   const [allQuestions, setAllQuestions] = useState([]);
   const [quizQuestions, setQuizQuestions] = useState([]);
@@ -580,16 +471,10 @@ export default function MCQ() {
 
     try {
       const response = await fetch(`${API}/questions?subject=${selectedSubject.id}`);
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-
+      if (!response.ok) throw new Error(`Handshake failed: ${response.status}`);
       const data = await response.json();
-      const all = (data.rows || [])
-        .map(transformRow);
-
-      if (all.length < 3) {
-        throw new Error(`Not enough questions found for "${selectedSubject.label}".`);
-      }
-
+      const all = (data.rows || []).map(transformRow);
+      if (all.length < 3) throw new Error(`Insufficient data for sector "${selectedSubject.label}".`);
       setAllQuestions(all);
       setPhase('list');
     } catch (e) {
@@ -619,58 +504,63 @@ export default function MCQ() {
 
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen page flex flex-col items-center justify-center text-white gap-4">
-        <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin" />
-        <p className="text-white/60 text-sm">Loading questions from HuggingFace…</p>
+      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center gap-8">
+        <div className="relative">
+          <div className="w-16 h-16 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
+          <div className="absolute inset-0 bg-accent/20 blur-xl rounded-full animate-pulse" />
+        </div>
+        <div className="text-center">
+          <p className="text-[10px] font-bold text-accent uppercase tracking-[0.4em] mb-2 animate-pulse">Synchronizing Neural Link</p>
+          <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Retrieving data vectors from sector core</p>
+        </div>
       </div>
     );
   }
 
-  if (phase === 'list') {
-    return (
-      <QuestionList
-        subject={subject}
-        allQuestions={allQuestions}
-        onStartQuiz={startRandomQuiz}
-        onStartFromQuestion={startFromQuestion}
-        onBack={() => setPhase('select')}
-      />
-    );
-  }
-
-  if (phase === 'quiz') {
-    return (
-      <Quiz
-        subject={subject}
-        questions={quizQuestions}
-        onFinish={handleFinish}
-        onBack={() => setPhase('list')}
-      />
-    );
-  }
-
-  if (phase === 'results') {
-    return (
-      <Results
-        subject={subject}
-        score={score}
-        total={quizQuestions.length}
-        onRetry={startRandomQuiz}
-        onBrowse={() => setPhase('list')}
-        onChangeSubject={() => setPhase('select')}
-      />
-    );
-  }
-
-  // Phase: select
   return (
     <>
-      {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/10 border border-white/20 text-white text-sm px-4 py-2 rounded-2xl shadow-lg">
-          {error}
-        </div>
-      )}
-      <SubjectSelection onSelect={fetchAllForSubject} />
+      <AnimatePresence>
+        {error && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-3">
+            <AlertTriangle className="w-4 h-4" />
+            {error}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence mode="wait">
+        {phase === 'select' && <SubjectSelection key="select" onSelect={fetchAllForSubject} />}
+        {phase === 'list' && (
+          <QuestionList
+            key="list"
+            subject={subject}
+            allQuestions={allQuestions}
+            onStartQuiz={startRandomQuiz}
+            onStartFromQuestion={startFromQuestion}
+            onBack={() => setPhase('select')}
+          />
+        )}
+        {phase === 'quiz' && (
+          <Quiz
+            key="quiz"
+            subject={subject}
+            questions={quizQuestions}
+            onFinish={handleFinish}
+            onBack={() => setPhase('list')}
+          />
+        )}
+        {phase === 'results' && (
+          <Results
+            key="results"
+            subject={subject}
+            score={score}
+            total={quizQuestions.length}
+            onRetry={startRandomQuiz}
+            onBrowse={() => setPhase('list')}
+            onChangeSubject={() => setPhase('select')}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

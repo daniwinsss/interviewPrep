@@ -34,13 +34,32 @@
   }
 
   body {
-    @apply text-white antialiased;
+    @apply text-white antialiased selection:bg-[#7c8cff]/30 selection:text-white;
     background-color: #050505;
     background-image:
-      radial-gradient(circle at top right, rgba(120, 150, 255, 0.15), transparent 45%),
-      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 40%),
-      linear-gradient(180deg, #050505 0%, #0f0f10 45%, #151515 100%);
+      radial-gradient(circle at top right, rgba(120, 150, 255, 0.12), transparent 40%),
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 35%),
+      linear-gradient(180deg, #050505 0%, #0b0b0c 35%, #111111 100%);
     font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  body::before {
+    content: "ANTIGRAVITY";
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-12deg);
+    font-size: 24vw;
+    font-weight: 900;
+    color: rgba(255, 255, 255, 0.02);
+    z-index: -1;
+    pointer-events: none;
+    filter: blur(12px);
+    letter-spacing: -0.05em;
+    white-space: nowrap;
+    text-transform: uppercase;
   }
 
   code,
@@ -183,6 +202,20 @@
 
   .pulse-soft {
     animation: pulseSoft 5s ease-in-out infinite;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.1);
   }
 }
 

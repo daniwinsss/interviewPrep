@@ -1,81 +1,138 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { Bot, Code2, Cpu, Terminal } from 'lucide-react';
 
 export function HeroVisual() {
   return (
-    <div className="relative w-full aspect-[4/3] max-w-[600px] mx-auto">
-      <div className="absolute inset-0 bg-radial opacity-80" />
-      <div className="absolute -top-16 -left-8 w-64 h-64 bg-[#7c8cff]/25 blur-[180px] pulse-soft" />
-      <div className="absolute -bottom-10 -right-10 w-64 h-64 bg-white/15 blur-[160px]" />
+    <div className="relative w-full aspect-[4/3] max-w-[700px] mx-auto scale-110 lg:scale-125 origin-center lg:translate-x-12">
+      {/* Decorative glows */}
+      <div className="absolute -top-20 -right-20 w-80 h-80 bg-accent/20 blur-[120px] rounded-full animate-pulse" />
+      <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-purple-500/10 blur-[120px] rounded-full" />
 
-      <div className="absolute inset-0 rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0f0f10] via-[#151515] to-[#1c1c1f] shadow-float overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_40%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_0%,rgba(124,140,255,0.18),transparent_40%)]" />
-
-        <div className="h-12 border-b border-white/10 bg-white/5 flex items-center px-5 gap-2">
-          <div className="w-2.5 h-2.5 rounded-full bg-white/25" />
-          <div className="w-2.5 h-2.5 rounded-full bg-white/25" />
-          <div className="w-2.5 h-2.5 rounded-full bg-white/25" />
-          <div className="ml-auto text-xs text-white/50 uppercase tracking-[0.3em]">AI interview cockpit</div>
+      {/* Main Container */}
+      <div className="relative h-full w-full rounded-[40px] border border-white/10 bg-[#0b0b0c]/80 backdrop-blur-3xl shadow-2xl overflow-hidden shadow-[0_0_100px_-30px_rgba(124,140,255,0.3)]">
+        {/* Header bar */}
+        <div className="h-14 border-b border-white/10 flex items-center px-6 gap-3 bg-white/5">
+          <div className="flex gap-2">
+            <div className="w-3 h-3 rounded-full bg-red-500/40" />
+            <div className="w-3 h-3 rounded-full bg-yellow-500/40" />
+            <div className="w-3 h-3 rounded-full bg-green-500/40" />
+          </div>
+          <div className="ml-4 h-6 w-px bg-white/10" />
+          <div className="flex items-center gap-2 text-[10px] text-white/40 uppercase tracking-[0.4em] font-bold">
+            <Terminal className="w-3 h-3" />
+            antigravity_os.v1.0.4
+          </div>
+          <div className="ml-auto flex items-center gap-4">
+            <div className="h-2 w-24 bg-white/10 rounded-full" />
+            <div className="w-8 h-8 rounded-lg bg-accent/20 border border-accent/30 flex items-center justify-center">
+              <Bot className="w-4 h-4 text-accent" />
+            </div>
+          </div>
         </div>
 
-        <div className="p-6 grid grid-cols-[1.1fr_0.9fr] gap-6 h-[calc(100%-3rem)]">
-          <div className="flex flex-col gap-4">
-            <motion.div className="surface-strong p-5 relative overflow-hidden" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-white/60 uppercase tracking-[0.3em]">Live session</div>
-                <div className="text-xs text-white/40">Voice On</div>
+        {/* Content area */}
+        <div className="p-8 grid grid-cols-[1.2fr_0.8fr] gap-8 h-[calc(100%-3.5rem)]">
+          <div className="space-y-6">
+            {/* Primary Panel */}
+            <motion.div 
+              className="surface-strong p-6 relative group overflow-hidden border-accent/20"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 }}
+            >
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  <span className="text-[10px] text-white/60 uppercase tracking-widest font-bold">Live AI Interview</span>
+                </div>
+                <div className="text-[10px] text-white/30 font-mono">ID: SEC-294</div>
               </div>
-              <div className="mt-4 space-y-3">
-                <div className="h-2 w-3/4 bg-white/30 rounded-full" />
-                <div className="h-2 w-2/3 bg-white/20 rounded-full" />
-                <div className="h-2 w-1/2 bg-white/20 rounded-full" />
+              <div className="space-y-4">
+                <div className="h-3 w-full bg-white/10 rounded-full" />
+                <div className="h-3 w-5/6 bg-white/5 rounded-full" />
+                <div className="h-3 w-4/6 bg-white/5 rounded-full" />
               </div>
-              <motion.div className="absolute -right-6 top-8 glass px-4 py-3 flex items-center gap-3 glow-blue" animate={{ y: [0, -6, 0] }} transition={{ duration: 6, repeat: Infinity }}>
-                <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-white to-[#c7ced9] text-black flex items-center justify-center font-bold">AI</div>
+              
+              {/* Floating element */}
+              <motion.div 
+                className="absolute -right-4 top-1/2 -translate-y-1/2 glass p-4 shadow-2xl border-accent/30 flex items-center gap-4 glow-blue scale-90"
+                animate={{ y: [-10, 10, -10] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-accent text-white flex items-center justify-center shadow-lg">
+                  <Cpu className="w-6 h-6" />
+                </div>
                 <div>
-                  <div className="h-2 w-20 bg-white/30 rounded-full" />
-                  <div className="h-2 w-14 bg-white/20 rounded-full mt-2" />
+                  <div className="text-[10px] text-white/40 uppercase font-bold tracking-widest">Signal</div>
+                  <div className="text-xl font-bold text-white">99.4%</div>
                 </div>
               </motion.div>
             </motion.div>
 
-            <motion.div className="surface p-4 relative overflow-hidden" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.1 }}>
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-white/60 uppercase tracking-[0.3em]">AI feedback</div>
-                <div className="text-xs text-white/40">Latency 0.4s</div>
+            {/* Coding Stream */}
+            <motion.div 
+              className="surface p-6 overflow-hidden relative"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <Code2 className="w-4 h-4 text-white/40" />
+                <span className="text-[10px] text-white/40 uppercase tracking-widest font-bold">solution.cpp</span>
               </div>
-              <div className="mt-4 space-y-3">
-                <div className="h-2 w-5/6 bg-white/20 rounded-full" />
-                <div className="h-2 w-2/3 bg-white/20 rounded-full" />
-                <div className="h-2 w-1/3 bg-white/20 rounded-full" />
+              <div className="space-y-2.5 font-mono">
+                <div className="h-2 w-3/4 bg-blue-400/20 rounded-full" />
+                <div className="h-2 w-full bg-white/5 rounded-full" />
+                <div className="h-2 w-5/6 bg-white/5 rounded-full" />
+                <div className="h-2 w-4/6 bg-purple-400/20 rounded-full" />
               </div>
-              <div className="absolute right-0 bottom-0 w-32 h-32 bg-[#7c8cff]/20 blur-[80px]" />
             </motion.div>
           </div>
 
-          <div className="flex flex-col gap-4">
-            <motion.div className="glass p-4 flex-1 relative overflow-hidden" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }}>
-              <div className="text-xs text-white/60 uppercase tracking-[0.3em]">Code stream</div>
-              <div className="mt-4 space-y-2">
-                <div className="h-2 w-4/5 bg-white/25 rounded-full" />
-                <div className="h-2 w-2/3 bg-white/20 rounded-full" />
-                <div className="h-2 w-1/2 bg-white/20 rounded-full" />
-                <div className="h-2 w-3/5 bg-white/15 rounded-full" />
-              </div>
-              <div className="absolute left-4 bottom-4 px-3 py-1 rounded-full bg-white/10 text-xs text-white/70">C++</div>
-            </motion.div>
-
-            <motion.div className="surface-strong p-4 relative overflow-hidden" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
-              <div className="text-xs text-white/60 uppercase tracking-[0.3em]">Decision layer</div>
-              <div className="mt-4 flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center font-semibold">98</div>
-                <div>
-                  <div className="h-2 w-24 bg-white/40 rounded-full" />
-                  <div className="h-2 w-16 bg-white/20 rounded-full mt-2" />
+          <div className="space-y-6">
+            {/* Feedback Panel */}
+            <motion.div 
+              className="glass p-6 h-full flex flex-col justify-between overflow-hidden border-white/5"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.6 }}
+            >
+              <div>
+                <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-4">Performance Insights</div>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-tighter">
+                      <span className="text-white/40">Technical</span>
+                      <span className="text-white">88%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full w-[88%] bg-accent" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] uppercase font-bold tracking-tighter">
+                      <span className="text-white/40">Clarity</span>
+                      <span className="text-white">92%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full w-[92%] bg-purple-500" />
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="absolute -right-8 -bottom-8 w-28 h-28 bg-white/10 blur-[80px]" />
+              
+              <div className="pt-6 border-t border-white/5">
+                <div className="flex items-center gap-4">
+                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white font-bold text-xs">
+                    JD
+                  </div>
+                  <div>
+                    <div className="text-[10px] text-white uppercase font-bold tracking-widest">Candidate</div>
+                    <div className="text-[10px] text-white/40">Verified Pro</div>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
