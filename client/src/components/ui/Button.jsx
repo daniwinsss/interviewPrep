@@ -5,7 +5,7 @@ const variants = {
   primary: 'btn-primary',
   secondary: 'btn-secondary',
   ghost: 'btn-ghost',
-  outline: 'bg-transparent text-white border border-white/20 hover:border-white/40 rounded-2xl px-5 py-2.5 font-semibold transition-all',
+  outline: 'bg-white/5 text-white border border-white/15 hover:border-white/40 rounded-2xl px-5 py-2.5 font-semibold transition-all',
 };
 
 const sizes = {

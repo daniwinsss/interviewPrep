@@ -14,10 +14,10 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
   return (
     <div className="app-shell">
       {showTopBar && (
-        <header className="sticky top-0 z-40 border-b border-white/10 bg-black/80 backdrop-blur-xl">
+        <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0f0f10]/85 backdrop-blur-xl">
           <div className="max-w-7xl mx-auto px-6 h-16 flex items-center gap-6">
             <Link to="/" className="flex items-center gap-3 text-white font-semibold tracking-tight">
-              <span className="w-9 h-9 rounded-2xl border border-white/15 bg-white/5 flex items-center justify-center">
+              <span className="w-9 h-9 rounded-2xl border border-white/15 bg-white/10 flex items-center justify-center">
                 <Command className="w-4 h-4" />
               </span>
               interviewPrep

@@ -3,16 +3,16 @@
 
 @layer base {
   :root {
-    --bg: 0 0% 0%;
+    --bg: 0 0% 3%;
     --fg: 0 0% 100%;
-    --muted: 0 0% 72%;
-    --muted-2: 0 0% 58%;
-    --border: 0 0% 12%;
-    --surface: 0 0% 6%;
-    --surface-2: 0 0% 10%;
-    --surface-3: 0 0% 14%;
-    --accent: 214 100% 62%;
-    --accent-strong: 214 100% 56%;
+    --muted: 0 0% 82%;
+    --muted-2: 0 0% 64%;
+    --border: 0 0% 16%;
+    --surface: 240 6% 8%;
+    --surface-2: 240 5% 11%;
+    --surface-3: 240 4% 14%;
+    --accent: 220 100% 76%;
+    --accent-strong: 230 90% 70%;
     --shadow: 0 0% 0%;
   }
 
@@ -34,7 +34,12 @@
   }
 
   body {
-    @apply bg-black text-white antialiased;
+    @apply text-white antialiased;
+    background-color: #050505;
+    background-image:
+      radial-gradient(circle at top right, rgba(120, 150, 255, 0.15), transparent 45%),
+      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.06), transparent 40%),
+      linear-gradient(180deg, #050505 0%, #0f0f10 45%, #151515 100%);
     font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
 
@@ -46,31 +51,51 @@
 
 @layer components {
   .app-shell {
-    @apply min-h-screen bg-black text-white;
+    @apply min-h-screen text-white;
+    background-color: #050505;
+    background-image:
+      radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.08), transparent 40%),
+      radial-gradient(circle at 80% 0%, rgba(120, 150, 255, 0.14), transparent 35%),
+      linear-gradient(180deg, #050505 0%, #0f0f10 40%, #151515 100%);
   }
 
   .page {
-    @apply min-h-screen bg-black text-white;
+    @apply min-h-screen text-white;
+    background-color: #050505;
+    background-image:
+      radial-gradient(circle at 10% 15%, rgba(255, 255, 255, 0.06), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(132, 146, 255, 0.12), transparent 35%),
+      linear-gradient(180deg, #050505 0%, #0f0f10 40%, #151515 100%);
   }
 
   .surface {
-    @apply bg-white/[0.06] border border-white/10 rounded-2xl shadow-[0_20px_60px_-30px_rgba(0,0,0,0.7)];
+    @apply border rounded-2xl shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)];
+    background: linear-gradient(140deg, rgba(21, 21, 21, 0.95), rgba(12, 12, 13, 0.9));
+    border-color: rgba(255, 255, 255, 0.08);
   }
 
   .surface-strong {
-    @apply bg-white/[0.09] border border-white/12 rounded-2xl shadow-[0_24px_80px_-40px_rgba(0,0,0,0.75)];
+    @apply border rounded-2xl shadow-[0_30px_80px_-45px_rgba(0,0,0,0.85)];
+    background: linear-gradient(160deg, rgba(28, 28, 31, 0.98), rgba(15, 15, 16, 0.92));
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   .glass {
-    @apply bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-2xl;
+    @apply backdrop-blur-2xl border rounded-2xl;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .btn-primary {
-    @apply bg-white text-black font-semibold rounded-2xl px-5 py-2.5 transition-all hover:shadow-[0_10px_30px_-12px_rgba(255,255,255,0.5)] active:scale-[0.98];
+    @apply text-white font-semibold rounded-2xl px-5 py-2.5 transition-all active:scale-[0.98];
+    background: linear-gradient(120deg, rgba(120, 150, 255, 0.85), rgba(160, 180, 255, 0.65));
+    box-shadow: 0 18px 40px -20px rgba(120, 150, 255, 0.6);
   }
 
   .btn-secondary {
-    @apply bg-white/5 text-white border border-white/10 rounded-2xl px-5 py-2.5 font-semibold hover:bg-white/10 transition-all;
+    @apply text-white border rounded-2xl px-5 py-2.5 font-semibold transition-all;
+    background: linear-gradient(145deg, rgba(35, 35, 38, 0.9), rgba(18, 18, 20, 0.85));
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
   .btn-ghost {
@@ -86,7 +111,15 @@
   }
 
   .input {
-    @apply w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 transition-all;
+    @apply w-full rounded-2xl px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none transition-all;
+    background: rgba(20, 20, 22, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+
+  .input:focus {
+    border-color: rgba(140, 160, 255, 0.5);
+    box-shadow: 0 0 0 3px rgba(120, 150, 255, 0.12);
   }
 
   .section-title {
@@ -118,17 +151,64 @@
   }
 
   .text-gradient {
-    background: linear-gradient(120deg, #ffffff 0%, #d4d4d8 45%, #a1a1aa 100%);
+    background: linear-gradient(120deg, #ffffff 0%, #e5e7eb 45%, #a1a1aa 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .shadow-soft {
-    box-shadow: 0 20px 60px -30px rgba(0, 0, 0, 0.7);
+    box-shadow: 0 24px 60px -35px rgba(0, 0, 0, 0.75);
   }
 
   .shadow-float {
     box-shadow: 0 40px 120px -60px rgba(0, 0, 0, 0.9);
+  }
+
+  .glow-blue {
+    box-shadow: 0 0 40px -16px rgba(120, 150, 255, 0.55);
+  }
+
+  .glow-purple {
+    box-shadow: 0 0 40px -16px rgba(160, 140, 255, 0.45);
+  }
+
+  .float-slow {
+    animation: floatSlow 8s ease-in-out infinite;
+  }
+
+  .float-medium {
+    animation: floatMedium 6s ease-in-out infinite;
+  }
+
+  .pulse-soft {
+    animation: pulseSoft 5s ease-in-out infinite;
+  }
+}
+
+@keyframes floatSlow {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-12px);
+  }
+}
+
+@keyframes floatMedium {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulseSoft {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
   }
 }

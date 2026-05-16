@@ -642,8 +642,8 @@ export default function Interview() {
   const liveVoiceConnecting = voiceMode === 'connecting';
 
   return (
-    <div className="h-screen bg-black text-white flex flex-col overflow-hidden">
-      <header className="h-16 border-b border-white/10 bg-black/70 backdrop-blur-xl flex items-center px-6 gap-4 shrink-0">
+    <div className="h-screen page flex flex-col overflow-hidden">
+      <header className="h-16 border-b border-white/10 bg-[#0f0f10]/80 backdrop-blur-xl flex items-center px-6 gap-4 shrink-0">
         <Link to="/" className="text-white/50 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
@@ -767,7 +767,7 @@ export default function Interview() {
       )}
 
       <div className="flex-1 flex overflow-hidden">
-        <div className={`${isDsa ? 'w-[42%]' : 'w-full'} border-r border-white/10 flex flex-col overflow-hidden`}>
+        <div className={`${isDsa ? 'w-[42%]' : 'w-full'} border-r border-white/10 flex flex-col overflow-hidden bg-[#0f0f10]/40`}>
           <div className="px-6 py-4 border-b border-white/10 bg-white/5 shrink-0">
             <div className="flex items-center justify-between gap-4">
               <div>
@@ -848,7 +848,7 @@ export default function Interview() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="p-4 bg-black/80 border-t border-white/10 backdrop-blur-md shrink-0">
+          <div className="p-4 bg-[#0f0f10]/90 border-t border-white/10 backdrop-blur-md shrink-0">
             <div className="max-w-full flex gap-3">
               <textarea
                 className="flex-1 bg-white/5 border border-white/10 rounded-2xl p-3 text-white focus:outline-none focus:border-white/30 focus:ring-2 focus:ring-white/10 resize-none h-14"
@@ -882,7 +882,7 @@ export default function Interview() {
         </div>
 
         {isDsa && (
-          <div className="flex-1 flex flex-col overflow-hidden bg-black">
+          <div className="flex-1 flex flex-col overflow-hidden bg-[#0f0f10]">
             <div className="h-12 border-b border-white/10 flex items-center justify-between px-4 bg-white/5 shrink-0">
               <div className="flex items-center gap-2 text-white/70">
                 <Code2 className="w-4 h-4" />

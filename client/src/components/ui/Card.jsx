@@ -6,7 +6,7 @@ export default function Card({ children, className = '', hover = true, ...props 
     <div
       className={classNames(
         'surface p-6 transition-all',
-        hover && 'hover:-translate-y-1 hover:border-white/20 hover:shadow-float',
+        hover && 'hover:-translate-y-1 hover:border-white/25 hover:shadow-float',
         className
       )}
       {...props}

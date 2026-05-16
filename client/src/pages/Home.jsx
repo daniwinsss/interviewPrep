@@ -19,20 +19,32 @@ const fadeUp = {
   })
 };
 
+const stagger = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.12 }
+  }
+};
+
 export default function Home() {
   return (
     <Shell showTopBar>
-      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/70 px-6 py-12 md:px-12 md:py-16 shadow-float">
-        <div className="absolute inset-0 bg-grid opacity-40" />
-        <div className="absolute -top-32 -right-24 w-72 h-72 bg-white/10 blur-[160px]" />
-        <div className="relative grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
-          <motion.div initial="hidden" animate="visible" variants={fadeUp}>
-            <Badge variant="outline" className="mb-6">Premium AI Interview OS</Badge>
-            <AccentHeading text="Build unstoppable interview clarity" />
-            <p className="text-lg text-white/70 mt-6 max-w-xl leading-relaxed">
-              A focused, high-contrast workspace that blends AI mock interviews, curated problem sets, and core subject drills into one premium prep cockpit.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-4">
+      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-[#0f0f10] via-[#151515] to-[#1c1c1f] px-6 py-14 md:px-12 md:py-20 shadow-float">
+        <div className="absolute inset-0 bg-grid opacity-30" />
+        <div className="absolute -top-40 -right-10 w-72 h-72 bg-[#7c8cff]/20 blur-[180px]" />
+        <div className="absolute -bottom-32 left-0 w-72 h-72 bg-white/10 blur-[160px]" />
+        <div className="relative grid lg:grid-cols-[1.1fr_0.9fr] gap-14 items-center">
+          <motion.div initial="hidden" animate="visible" variants={stagger}>
+            <motion.div variants={fadeUp}>
+              <Badge variant="outline" className="mb-6">Premium AI Interview OS</Badge>
+            </motion.div>
+            <motion.div variants={fadeUp}>
+              <AccentHeading text="Build cinematic interview confidence" />
+            </motion.div>
+            <motion.p className="text-lg text-white/70 mt-6 max-w-xl leading-relaxed" variants={fadeUp}>
+              A layered, high-signal workspace that merges AI mock interviews, curated problem sets, and core subject drills into one elite prep cockpit.
+            </motion.p>
+            <motion.div className="mt-8 flex flex-wrap gap-4" variants={fadeUp}>
               <Link to="/interview">
                 <Button size="lg" icon={<ArrowUpRight className="w-4 h-4" />}>
                   Start AI interview
@@ -43,23 +55,23 @@ export default function Home() {
                   Explore problem sets
                 </Button>
               </Link>
-            </div>
-            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs text-white/60">
-              {['Realtime feedback', 'Voice + live coding', 'Enterprise-grade clarity'].map((item) => (
+            </motion.div>
+            <motion.div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs text-white/60" variants={fadeUp}>
+              {['Realtime feedback', 'Voice + live coding', 'Investor-ready UX'].map((item) => (
                 <div key={item} className="glass px-4 py-3">{item}</div>
               ))}
-            </div>
+            </motion.div>
           </motion.div>
-          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.15}>
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.2}>
             <HeroVisual />
           </motion.div>
         </div>
       </div>
 
-      <div className="mt-20 space-y-20">
+      <div className="mt-24 space-y-24">
         <Section
           title="All-in-one interview command center"
-          subtitle="Navigate seamlessly between live coding, AI interviews, and core subject drills with a consistent, premium experience."
+          subtitle="Navigate seamlessly between live coding, AI interviews, and core subject drills with a cinematic, premium experience."
         >
           <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
             {[
@@ -97,7 +109,7 @@ export default function Home() {
                 >
                   <Link to={item.link} className="block h-full">
                     <Card className="h-full flex flex-col gap-6">
-                      <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-white to-[#c7ced9] text-black flex items-center justify-center glow-blue">
                         <Icon className="w-5 h-5" />
                       </div>
                       <div className="flex-1">
@@ -129,7 +141,7 @@ export default function Home() {
             {[
               {
                 title: 'High-contrast workflow',
-                copy: 'Premium black + white palette, tuned typography, and sharp hierarchy for perfect readability.'
+                copy: 'Deep graphite palette, tuned typography, and sharp hierarchy for perfect readability.'
               },
               {
                 title: 'Seamless navigation',

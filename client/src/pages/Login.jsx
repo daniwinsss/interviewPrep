@@ -44,9 +44,9 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-6 py-16 relative">
-      <div className="absolute inset-0 bg-grid opacity-40" />
-      <div className="absolute top-0 left-0 right-0 h-40 bg-radial" />
+    <div className="min-h-screen text-white flex items-center justify-center px-6 py-16 relative page">
+      <div className="absolute inset-0 bg-grid opacity-25" />
+      <div className="absolute top-0 left-0 right-0 h-48 bg-radial" />
 
       <Link to="/" className="absolute top-6 left-6 text-white/60 hover:text-white transition-colors flex items-center gap-2">
         <ArrowLeft className="w-4 h-4" />

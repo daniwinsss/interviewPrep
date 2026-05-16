@@ -129,8 +129,8 @@ function transformRow(row) {
 // ─── Phase 1: Subject Selection ────────────────────────────────────────────────
 function SubjectSelection({ onSelect }) {
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-black/70 backdrop-blur-xl">
+    <div className="min-h-screen page flex flex-col">
+      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-[#0f0f10]/80 backdrop-blur-xl">
         <Link to="/" className="text-white/60 hover:text-white transition-colors">
           <ArrowLeft className="w-4 h-4" />
         </Link>
@@ -245,9 +245,9 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
+    <div className="min-h-screen page flex flex-col">
       {/* Header */}
-      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-black/70 backdrop-blur-xl gap-4 shrink-0">
+      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-[#0f0f10]/80 backdrop-blur-xl gap-4 shrink-0">
         <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -402,8 +402,8 @@ function Quiz({ subject, questions, onFinish, onBack }) {
   const Icon = subject.icon;
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col">
-      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-black/70 backdrop-blur-xl gap-4">
+    <div className="min-h-screen page flex flex-col">
+      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-[#0f0f10]/80 backdrop-blur-xl gap-4">
         <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
@@ -520,7 +520,7 @@ function Results({ subject, score, total, onRetry, onBrowse, onChangeSubject }) 
   const barColor = 'bg-white';
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen page flex flex-col items-center justify-center p-6">
       <div className="max-w-md w-full surface-strong p-10 text-center">
         <div className="w-16 h-16 rounded-2xl bg-white text-black flex items-center justify-center mx-auto mb-6">
           <Trophy className="w-8 h-8" />
@@ -619,7 +619,7 @@ export default function MCQ() {
 
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+      <div className="min-h-screen page flex flex-col items-center justify-center text-white gap-4">
         <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin" />
         <p className="text-white/60 text-sm">Loading questions from HuggingFace…</p>
       </div>

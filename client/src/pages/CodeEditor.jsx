@@ -217,10 +217,10 @@ export default function CodeEditor() {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col text-white overflow-hidden">
+    <div className="h-screen page flex flex-col text-white overflow-hidden">
 
       {/* Header */}
-      <header className="h-14 border-b border-white/10 flex items-center px-4 justify-between bg-black/70 backdrop-blur-md shrink-0">
+      <header className="h-14 border-b border-white/10 flex items-center px-4 justify-between bg-[#0f0f10]/80 backdrop-blur-md shrink-0">
         <div className="flex items-center gap-3">
           <Link to="/problems" className="text-white/60 hover:text-white transition-colors">
             <ArrowLeft className="w-4 h-4" />
@@ -268,7 +268,7 @@ export default function CodeEditor() {
       <div className="flex-1 flex overflow-hidden">
 
         {/* Left: Problem Description */}
-        <div className="w-2/5 border-r border-white/10 flex flex-col overflow-hidden">
+        <div className="w-2/5 border-r border-white/10 flex flex-col overflow-hidden bg-[#0f0f10]/40">
           {/* Tabs */}
           <div className="flex border-b border-white/10 shrink-0">
             {['description', 'results'].map(tab => (
@@ -442,7 +442,7 @@ export default function CodeEditor() {
         {/* Right: Editor + Custom Input */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Monaco Editor */}
-          <div className="flex-1 bg-black overflow-hidden">
+          <div className="flex-1 bg-[#0f0f10] overflow-hidden">
             <Editor
               height="100%"
               language={LANG_MAP[language]?.monacoLang || 'cpp'}
@@ -469,7 +469,7 @@ export default function CodeEditor() {
               value={customInput}
               onChange={e => setCustomInput(e.target.value)}
               placeholder="Enter stdin for Run..."
-              className="flex-1 bg-black p-4 font-mono text-sm text-white/80 resize-none outline-none placeholder:text-white/40"
+              className="flex-1 bg-[#0f0f10] p-4 font-mono text-sm text-white/80 resize-none outline-none placeholder:text-white/40"
             />
           </div>
         </div>
