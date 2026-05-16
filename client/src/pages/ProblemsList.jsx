@@ -229,7 +229,9 @@ export default function ProblemsList() {
         {/* Search + Filters */}
         <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
           <div className="relative">
-            <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+            <div className="absolute inset-y-0 left-4 flex items-center">
+              <Search className="w-4 h-4 text-white/40" />
+            </div>
             <input
               type="text"
               placeholder="Search problems, topics, or contests"
