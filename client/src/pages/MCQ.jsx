@@ -1,8 +1,12 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { ArrowLeft, CheckCircle2, XCircle, Circle, RotateCcw, Trophy, BookOpen, Cpu, Globe, Binary, Search, Shuffle, ChevronRight, ChevronDown, Tag } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import renderMathInElement from 'katex/dist/contrib/auto-render';
 import { apiUrl } from '../lib/api';
+import Badge from '../components/ui/Badge';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
 
 // ─── API Config ────────────────────────────────────────────────────────────────
 const API = apiUrl('/api/mcq');
@@ -17,11 +21,11 @@ const SUBJECTS = [
     domain: 'Data Structure and Algorithm',
     offsets: [0, 100, 200, 300],
     icon: Binary,
-    color: 'from-violet-600/20 to-violet-800/10',
-    border: 'border-violet-500/30 hover:border-violet-400/60',
-    badge: 'bg-violet-500/20 text-violet-300',
-    iconColor: 'text-violet-400',
-    ring: 'ring-violet-500/30',
+    color: 'from-white/10 to-white/5',
+    border: 'border-white/15 hover:border-white/30',
+    badge: 'bg-white/10 text-white',
+    iconColor: 'text-white',
+    ring: 'ring-white/20',
   },
   {
     id: 'arch',
@@ -29,11 +33,11 @@ const SUBJECTS = [
     domain: 'Computer Organization',
     offsets: [400, 500, 600, 700, 800, 900],
     icon: Cpu,
-    color: 'from-blue-600/20 to-blue-800/10',
-    border: 'border-blue-500/30 hover:border-blue-400/60',
-    badge: 'bg-blue-500/20 text-blue-300',
-    iconColor: 'text-blue-400',
-    ring: 'ring-blue-500/30',
+    color: 'from-white/10 to-white/5',
+    border: 'border-white/15 hover:border-white/30',
+    badge: 'bg-white/10 text-white',
+    iconColor: 'text-white',
+    ring: 'ring-white/20',
   },
   {
     id: 'cn',
@@ -41,11 +45,11 @@ const SUBJECTS = [
     domain: 'Computer Network',
     offsets: [1000],
     icon: Globe,
-    color: 'from-cyan-600/20 to-cyan-800/10',
-    border: 'border-cyan-500/30 hover:border-cyan-400/60',
-    badge: 'bg-cyan-500/20 text-cyan-300',
-    iconColor: 'text-cyan-400',
-    ring: 'ring-cyan-500/30',
+    color: 'from-white/10 to-white/5',
+    border: 'border-white/15 hover:border-white/30',
+    badge: 'bg-white/10 text-white',
+    iconColor: 'text-white',
+    ring: 'ring-white/20',
   },
   {
     id: 'os',
@@ -53,11 +57,11 @@ const SUBJECTS = [
     domain: 'Operating System',
     offsets: [1100, 1200, 1236],
     icon: BookOpen,
-    color: 'from-orange-600/20 to-orange-800/10',
-    border: 'border-orange-500/30 hover:border-orange-400/60',
-    badge: 'bg-orange-500/20 text-orange-300',
-    iconColor: 'text-orange-400',
-    ring: 'ring-orange-500/30',
+    color: 'from-white/10 to-white/5',
+    border: 'border-white/15 hover:border-white/30',
+    badge: 'bg-white/10 text-white',
+    iconColor: 'text-white',
+    ring: 'ring-white/20',
   },
 ];
 
@@ -125,40 +129,42 @@ function transformRow(row) {
 // ─── Phase 1: Subject Selection ────────────────────────────────────────────────
 function SubjectSelection({ onSelect }) {
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col">
-      <header className="h-16 border-b border-slate-800 flex items-center px-6 bg-slate-900/50">
-        <Link to="/" className="text-slate-400 hover:text-white transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-black/70 backdrop-blur-xl">
+        <Link to="/" className="text-white/60 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" />
         </Link>
         <div className="ml-4">
-          <h1 className="font-semibold text-lg text-slate-100">Core Subjects Practice</h1>
-          <p className="text-xs text-slate-400">Choose a subject to begin</p>
+          <h1 className="font-semibold text-lg text-white">Core Subjects Practice</h1>
+          <p className="text-xs text-white/60">Choose a subject to begin</p>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
-        <div className="max-w-3xl w-full">
+        <div className="max-w-4xl w-full">
           <div className="text-center mb-10">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent mb-2">Pick a Topic</h2>
-            <p className="text-slate-400 text-sm">Browse all questions or start a 10-question quiz</p>
+            <h2 className="text-3xl md:text-4xl font-semibold text-gradient mb-3">Pick a subject</h2>
+            <p className="text-white/60">Browse all questions or start a 10-question sprint.</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {SUBJECTS.map((subject) => {
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {SUBJECTS.map((subject, idx) => {
               const Icon = subject.icon;
               return (
-                <button
+                <motion.button
                   key={subject.id}
                   onClick={() => onSelect(subject)}
-                  className={`group relative bg-gradient-to-br ${subject.color} border ${subject.border} rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-black/30 cursor-pointer`}
+                  className={`group relative bg-gradient-to-br ${subject.color} border ${subject.border} rounded-2xl p-6 text-left transition-all duration-300 hover:scale-[1.02] hover:shadow-float cursor-pointer`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: idx * 0.05 }}
                 >
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${subject.badge}`}>
-                    <Icon className={`w-5 h-5 ${subject.iconColor}`} />
+                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 bg-white text-black">
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <h3 className="font-semibold text-slate-100 text-sm leading-snug mb-1">{subject.label}</h3>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${subject.badge}`}>MCQ · Browse &amp; Quiz</span>
-                  <div className="absolute inset-0 rounded-2xl ring-1 ring-white/5 group-hover:ring-white/10 transition-all" />
-                </button>
+                  <h3 className="font-semibold text-white text-base leading-snug mb-2">{subject.label}</h3>
+                  <Badge variant="outline">MCQ · Browse + Quiz</Badge>
+                </motion.button>
               );
             })}
           </div>
@@ -239,61 +245,51 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
   }, [filtered]);
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <header className="h-16 border-b border-slate-800 flex items-center px-6 bg-slate-900/50 gap-4 shrink-0">
+      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-black/70 backdrop-blur-xl gap-4 shrink-0">
         <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${subject.badge}`}>
-          <Icon className={`w-4 h-4 ${subject.iconColor}`} />
-          <span className="text-xs font-medium">{subject.label}</span>
-        </div>
-        <span className="text-slate-500 text-sm">{allQuestions.length} questions</span>
+        <Badge variant="outline">{subject.label}</Badge>
+        <span className="text-white/50 text-sm">{allQuestions.length} questions</span>
         <div className="flex-1" />
         <button
           onClick={() => setGroupByTopic(g => !g)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all mr-2 ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all mr-2 ${
             groupByTopic
-              ? 'bg-violet-600/20 border-violet-500/40 text-violet-300'
-              : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-slate-200'
+              ? 'bg-white text-black border-white'
+              : 'bg-white/5 border-white/15 text-white/60 hover:text-white'
           }`}
         >
           <Tag className="w-3 h-3" />
           Topics
         </button>
-        <button
-          onClick={onStartQuiz}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-lg shadow-blue-500/20"
-        >
-          <Shuffle className="w-4 h-4" />
+        <Button size="sm" onClick={onStartQuiz} icon={<Shuffle className="w-4 h-4" />}>
           Random 10-Q Quiz
-        </button>
+        </Button>
       </header>
 
       {/* Search */}
-      <div className="px-6 py-4 border-b border-slate-800/60 shrink-0">
+      <div className="px-6 py-4 border-b border-white/10 shrink-0">
         <div className="relative max-w-xl">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search questions or topics…"
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
+            className="input pl-9"
           />
         </div>
       </div>
 
       {/* Topic summary chips */}
       {groupByTopic && (
-        <div className="px-6 py-3 border-b border-slate-800/40 flex flex-wrap gap-2 shrink-0">
+        <div className="px-6 py-3 border-b border-white/10 flex flex-wrap gap-2 shrink-0">
           {topicGroups.map(([topic, qs]) => (
-            <span
-              key={topic}
-              className={`text-xs px-2.5 py-1 rounded-full border ${subject.badge} border-current/20 font-medium`}
-            >
+            <Badge key={topic} variant="outline">
               {topic} <span className="opacity-60">({qs.length})</span>
-            </span>
+            </Badge>
           ))}
         </div>
       )}
@@ -302,7 +298,10 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
       <main className="flex-1 overflow-y-auto px-6 py-4">
         <div className="max-w-4xl mx-auto">
           {filtered.length === 0 && (
-            <div className="text-center text-slate-500 py-16">No questions match your search.</div>
+            <Card hover={false} className="text-center py-12">
+              <h3 className="text-lg font-semibold">No questions match your search.</h3>
+              <p className="text-white/60 mt-2">Try a broader keyword.</p>
+            </Card>
           )}
 
           {groupByTopic ? (
@@ -330,22 +329,22 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
                 <button
                   key={q.id}
                   onClick={() => onStartFromQuestion(q)}
-                  className="group w-full text-left flex items-start gap-4 bg-slate-900/60 hover:bg-slate-800/60 border border-slate-800 hover:border-slate-700 rounded-xl px-4 py-3.5 transition-all"
+                  className="group w-full text-left flex items-start gap-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-2xl px-4 py-3.5 transition-all"
                 >
-                  <span className="text-xs font-bold text-slate-600 w-8 shrink-0 text-right mt-0.5">
+                  <span className="text-xs font-bold text-white/40 w-8 shrink-0 text-right mt-0.5">
                     {allQuestions.indexOf(q) + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-slate-200 leading-relaxed group-hover:text-white transition-colors">
+                    <p className="text-sm text-white leading-relaxed group-hover:text-white transition-colors">
                       {q.question}
                     </p>
                     {q.subDomain && (
-                      <span className={`inline-block text-xs mt-1.5 px-2 py-0.5 rounded-full ${subject.badge}`}>
+                      <Badge className="mt-2" variant="outline">
                         {q.subDomain}
-                      </span>
+                      </Badge>
                     )}
                   </div>
-                  <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 shrink-0 transition-colors mt-0.5" />
+                  <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-white shrink-0 transition-colors mt-0.5" />
                 </button>
               ))}
             </div>
@@ -403,48 +402,43 @@ function Quiz({ subject, questions, onFinish, onBack }) {
   const Icon = subject.icon;
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col">
-      <header className="h-16 border-b border-slate-800 flex items-center px-6 bg-slate-900/50 gap-4">
+    <div className="min-h-screen bg-black text-white flex flex-col">
+      <header className="h-16 border-b border-white/10 flex items-center px-6 bg-black/70 backdrop-blur-xl gap-4">
         <button onClick={onBack} className="text-slate-400 hover:text-white transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full ${subject.badge}`}>
-          <Icon className={`w-4 h-4 ${subject.iconColor}`} />
-          <span className="text-xs font-medium">{subject.label}</span>
-        </div>
+        <Badge variant="outline">{subject.label}</Badge>
         <div className="flex-1" />
-        <span className="text-sm font-medium text-slate-400">
-          {currentIdx + 1} <span className="text-slate-600">/</span> {questions.length}
+        <span className="text-sm font-medium text-white/60">
+          {currentIdx + 1} <span className="text-white/30">/</span> {questions.length}
         </span>
       </header>
 
       {/* Progress bar */}
-      <div className="h-1 bg-slate-800">
+      <div className="h-1 bg-white/10">
         <div
-          className="h-full bg-gradient-to-r from-blue-600 to-violet-600 transition-all duration-500"
+          className="h-full bg-white transition-all duration-500"
           style={{ width: `${progress}%` }}
         />
       </div>
 
       <main className="flex-1 flex items-center justify-center p-6">
         <div className="max-w-2xl w-full">
-          <div ref={containerRef} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8">
+          <div ref={containerRef} className="surface-strong p-8">
 
             {/* Question meta */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                Question {currentIdx + 1}
-              </span>
-              {question.subDomain && (
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${subject.badge}`}>
-                  {question.subDomain}
+                <span className="text-xs font-semibold text-white/40 uppercase tracking-[0.3em]">
+                  Question {currentIdx + 1}
                 </span>
-              )}
-            </div>
+                {question.subDomain && (
+                  <Badge variant="outline">{question.subDomain}</Badge>
+                )}
+              </div>
 
             {/* Question text — styled with proper readability */}
             <div className="mb-7">
-              <p className="text-base font-medium text-slate-100 leading-relaxed whitespace-pre-wrap">
+              <p className="text-base font-medium text-white leading-relaxed whitespace-pre-wrap">
                 {question.question}
               </p>
             </div>
@@ -453,15 +447,15 @@ function Quiz({ subject, questions, onFinish, onBack }) {
             <div className="flex flex-col gap-3">
               {question.options.map((opt, idx) => {
                 const letter = ['A', 'B', 'C', 'D'][idx];
-                let style = 'border-slate-800 hover:border-slate-600 bg-slate-950/60 text-slate-300 hover:text-slate-100';
+                let style = 'border-white/10 hover:border-white/30 bg-white/5 text-white/70 hover:text-white';
 
                 if (isAnswered) {
                   if (idx === question.correct) {
-                    style = 'border-emerald-500/60 bg-emerald-500/10 text-emerald-100';
+                    style = 'border-white bg-white text-black';
                   } else if (idx === selected) {
-                    style = 'border-rose-500/60 bg-rose-500/10 text-rose-100';
+                    style = 'border-white/40 bg-white/10 text-white';
                   } else {
-                    style = 'border-slate-800 bg-slate-950 opacity-40 text-slate-400';
+                    style = 'border-white/10 bg-white/5 opacity-50 text-white/40';
                   }
                 }
 
@@ -473,16 +467,16 @@ function Quiz({ subject, questions, onFinish, onBack }) {
                     className={`text-left p-4 rounded-xl border flex items-start gap-3 transition-all duration-200 ${style} ${!isAnswered ? 'cursor-pointer' : 'cursor-default'}`}
                   >
                     <span className={`text-xs font-bold w-6 h-6 rounded-md flex items-center justify-center shrink-0 mt-0.5 ${
-                      isAnswered && idx === question.correct ? 'bg-emerald-500/30 text-emerald-300' :
-                      isAnswered && idx === selected ? 'bg-rose-500/30 text-rose-300' :
-                      'bg-slate-800 text-slate-500'
+                      isAnswered && idx === question.correct ? 'bg-black text-white' :
+                      isAnswered && idx === selected ? 'bg-white/20 text-white' :
+                      'bg-white/10 text-white/50'
                     }`}>{letter}</span>
                     {isAnswered && idx === question.correct ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-white shrink-0 mt-0.5" />
                     ) : isAnswered && idx === selected ? (
-                      <XCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
+                      <XCircle className="w-4 h-4 text-white/60 shrink-0 mt-0.5" />
                     ) : (
-                      <Circle className="w-4 h-4 text-slate-700 shrink-0 mt-0.5" />
+                      <Circle className="w-4 h-4 text-white/30 shrink-0 mt-0.5" />
                     )}
                     <span className="leading-relaxed text-sm whitespace-pre-wrap">{opt}</span>
                   </button>
@@ -492,25 +486,22 @@ function Quiz({ subject, questions, onFinish, onBack }) {
 
             {/* Explanation + Next */}
             {isAnswered && (
-              <div className="mt-7 pt-6 border-t border-slate-800">
+              <div className="mt-7 pt-6 border-t border-white/10">
                 {question.explanation && (
-                  <div className="bg-slate-800/60 border border-slate-700/50 rounded-xl p-4 mb-5">
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Explanation</p>
-                    <p className="text-slate-200 text-sm leading-relaxed whitespace-pre-wrap">
+                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 mb-5">
+                    <p className="text-xs font-bold text-white/50 uppercase tracking-[0.3em] mb-2">Explanation</p>
+                    <p className="text-white/80 text-sm leading-relaxed whitespace-pre-wrap">
                       {question.explanation}
                     </p>
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className={`text-sm font-semibold ${selected === question.correct ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {selected === question.correct ? '✓ Correct!' : '✗ Incorrect'}
+                  <span className="text-sm font-semibold text-white">
+                    {selected === question.correct ? 'Correct' : 'Incorrect'}
                   </span>
-                  <button
-                    onClick={handleNext}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-medium transition-colors shadow-lg shadow-blue-500/20 text-sm"
-                  >
+                  <Button onClick={handleNext} size="sm">
                     {currentIdx < questions.length - 1 ? 'Next Question →' : 'See Results'}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -525,18 +516,18 @@ function Quiz({ subject, questions, onFinish, onBack }) {
 function Results({ subject, score, total, onRetry, onBrowse, onChangeSubject }) {
   const pct = Math.round((score / total) * 100);
   const grade = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : pct >= 40 ? 'Needs Work' : 'Keep Practicing';
-  const gradeColor = pct >= 80 ? 'text-emerald-400' : pct >= 60 ? 'text-blue-400' : pct >= 40 ? 'text-yellow-400' : 'text-rose-400';
-  const barColor = pct >= 80 ? 'bg-emerald-500' : pct >= 60 ? 'bg-blue-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-rose-500';
+  const gradeColor = 'text-white';
+  const barColor = 'bg-white';
 
   return (
-    <div className="min-h-screen bg-slate-950 font-sans text-slate-100 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-slate-900/80 border border-slate-800 rounded-2xl p-10 text-center">
-        <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 flex items-center justify-center mx-auto mb-6">
-          <Trophy className="w-8 h-8 text-yellow-400" />
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6">
+      <div className="max-w-md w-full surface-strong p-10 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-white text-black flex items-center justify-center mx-auto mb-6">
+          <Trophy className="w-8 h-8" />
         </div>
 
-        <h2 className="text-2xl font-bold mb-1">Practice Complete!</h2>
-        <p className="text-slate-400 text-sm mb-8">{subject.label}</p>
+        <h2 className="text-2xl font-semibold mb-1">Practice Complete</h2>
+        <p className="text-white/60 text-sm mb-8">{subject.label}</p>
 
         <div className="mb-8">
           <div className="text-6xl font-bold mb-2">
@@ -544,10 +535,10 @@ function Results({ subject, score, total, onRetry, onBrowse, onChangeSubject }) 
             <span className="text-slate-600 text-3xl">/{total}</span>
           </div>
           <div className={`text-lg font-semibold ${gradeColor}`}>{grade}</div>
-          <div className="text-slate-500 text-sm">{pct}% correct</div>
+          <div className="text-white/60 text-sm">{pct}% correct</div>
         </div>
 
-        <div className="h-2 bg-slate-800 rounded-full mb-8 overflow-hidden">
+        <div className="h-2 bg-white/10 rounded-full mb-8 overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-700 ${barColor}`}
             style={{ width: `${pct}%` }}
@@ -555,25 +546,16 @@ function Results({ subject, score, total, onRetry, onBrowse, onChangeSubject }) 
         </div>
 
         <div className="flex flex-col gap-3">
-          <button
-            onClick={onRetry}
-            className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg font-medium transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" /> Random Quiz Again
-          </button>
-          <button
-            onClick={onBrowse}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 px-6 py-2.5 rounded-lg font-medium transition-colors"
-          >
+          <Button onClick={onRetry} icon={<RotateCcw className="w-4 h-4" />}>
+            Random Quiz Again
+          </Button>
+          <Button variant="secondary" onClick={onBrowse}>
             Browse Questions
-          </button>
-          <button
-            onClick={onChangeSubject}
-            className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 px-6 py-2.5 rounded-lg font-medium transition-colors"
-          >
+          </Button>
+          <Button variant="secondary" onClick={onChangeSubject}>
             Choose Another Subject
-          </button>
-          <Link to="/" className="text-slate-500 hover:text-slate-300 text-sm py-1 transition-colors">
+          </Button>
+          <Link to="/" className="text-white/50 hover:text-white text-sm py-1 transition-colors">
             Return Home
           </Link>
         </div>
@@ -637,9 +619,9 @@ export default function MCQ() {
 
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-100 gap-4">
-        <div className="w-10 h-10 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-slate-400 text-sm">Loading questions from HuggingFace…</p>
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white gap-4">
+        <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        <p className="text-white/60 text-sm">Loading questions from HuggingFace…</p>
       </div>
     );
   }
@@ -684,8 +666,8 @@ export default function MCQ() {
   return (
     <>
       {error && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-red-900/80 border border-red-500/40 text-red-200 text-sm px-4 py-2 rounded-lg shadow-lg">
-          ⚠ {error}
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-white/10 border border-white/20 text-white text-sm px-4 py-2 rounded-2xl shadow-lg">
+          {error}
         </div>
       )}
       <SubjectSelection onSelect={fetchAllForSubject} />

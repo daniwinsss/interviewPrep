@@ -2,63 +2,53 @@ import React from 'react';
 
 export function HeroVisual() {
   return (
-    <div className="relative w-[110%] md:w-full aspect-[4/3] max-w-[540px] mx-auto md:mr-[-10%] translate-x-4 md:translate-x-0">
-      {/* Decorative background glow */}
-      <div className="absolute inset-0 bg-blue-500/15 blur-[120px] rounded-full mix-blend-screen" />
-      
-      {/* Main Wireframe Window */}
-      <div className="absolute inset-0 bg-[#0a0f1c]/90 backdrop-blur-md border border-slate-700/60 shadow-2xl overflow-hidden flex flex-col rounded-xl">
-        
-        {/* Fake Mac Window Header */}
-        <div className="h-10 border-b border-slate-800/80 bg-[#0f1523] flex items-center px-4 gap-2 shrink-0">
-          <div className="w-3 h-3 rounded-full bg-slate-600/80" />
-          <div className="w-3 h-3 rounded-full bg-slate-600/80" />
-          <div className="w-3 h-3 rounded-full bg-slate-600/80" />
+    <div className="relative w-full aspect-[4/3] max-w-[560px] mx-auto">
+      <div className="absolute inset-0 bg-radial opacity-80" />
+      <div className="absolute -top-12 -left-10 w-56 h-56 bg-white/5 blur-[120px]" />
+      <div className="absolute -bottom-10 -right-10 w-56 h-56 bg-white/10 blur-[140px]" />
+
+      <div className="absolute inset-0 glass shadow-float overflow-hidden">
+        <div className="h-10 border-b border-white/10 bg-black/40 flex items-center px-4 gap-2">
+          <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+          <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
+          <div className="w-2.5 h-2.5 rounded-full bg-white/20" />
         </div>
-        
-        {/* Content Container */}
-        <div className="flex-1 p-6 flex flex-col gap-5">
-          
-          {/* Top Large Box */}
-          <div className="relative w-full bg-[#070b15] border border-slate-700/40 rounded-xl p-6 flex flex-col gap-4 shadow-inner">
-             <div className="h-3 w-1/3 bg-blue-500 rounded-full" />
-             <div className="flex flex-col gap-2.5 mt-2">
-                <div className="h-2.5 w-4/5 bg-slate-700 rounded-full" />
-                <div className="h-2.5 w-3/5 bg-slate-700 rounded-full" />
-                <div className="h-2.5 w-1/4 bg-slate-700 rounded-full" />
-             </div>
-             
-             {/* Floating Checkmark Element */}
-             <div className="absolute -right-6 top-14 p-3 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl flex items-center gap-4 w-[180px] animate-pulse" style={{animationDuration: '4s'}}>
-               <div className="w-8 h-8 shrink-0 rounded-full bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                 <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                 </svg>
-               </div>
-               <div className="h-2.5 w-full bg-slate-600 rounded-full" />
-             </div>
-          </div>
 
-          {/* Middle: Two Split Boxes */}
-          <div className="grid grid-cols-2 gap-5 min-h-[90px]">
-            <div className="h-full bg-[#070b15] border border-slate-700/40 rounded-xl p-5 flex flex-col justify-end gap-4 relative overflow-hidden group">
-               <div className="h-2 w-1/2 bg-slate-700 rounded-full" />
-               <div className="h-4 w-full bg-blue-400 rounded-full" />
-               <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+        <div className="p-6 grid grid-rows-[1.2fr_0.8fr_1fr] gap-5 h-full">
+          <div className="relative surface-strong p-6">
+            <div className="flex items-center justify-between">
+              <div className="h-2 w-24 bg-white/70 rounded-full" />
+              <div className="h-2 w-12 bg-white/30 rounded-full" />
             </div>
-            <div className="h-full bg-[#070b15] border border-slate-700/40 rounded-xl p-5 flex flex-col justify-end gap-4 relative overflow-hidden group">
-               <div className="h-2 w-1/2 bg-slate-700 rounded-full" />
-               <div className="h-4 w-full bg-blue-400 rounded-full" />
-               <div className="absolute inset-0 bg-blue-400/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <div className="mt-6 space-y-3">
+              <div className="h-2 w-3/4 bg-white/20 rounded-full" />
+              <div className="h-2 w-2/3 bg-white/20 rounded-full" />
+              <div className="h-2 w-1/2 bg-white/20 rounded-full" />
+            </div>
+            <div className="absolute -right-6 top-10 glass px-4 py-3 flex items-center gap-3 shadow-float">
+              <div className="w-9 h-9 rounded-2xl bg-white text-black flex items-center justify-center font-bold">AI</div>
+              <div className="h-2 w-20 bg-white/20 rounded-full" />
             </div>
           </div>
 
-          {/* Bottom: Wide Pill Elements Box */}
-          <div className="flex-1 w-full bg-[#070b15] border border-slate-700/40 rounded-xl p-5 flex flex-col gap-4 overflow-hidden relative">
-             <div className="w-[85%] h-8 bg-blue-900 rounded-r-full absolute left-0 top-6 border-y border-r border-blue-800/60" />
-             <div className="w-[70%] h-8 bg-slate-800 rounded-l-full absolute right-0 bottom-6 border-y border-l border-slate-700/50" />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="surface p-4 flex flex-col gap-3">
+              <div className="h-2 w-1/2 bg-white/30 rounded-full" />
+              <div className="h-4 w-full bg-white/80 rounded-full" />
+              <div className="h-3 w-5/6 bg-white/20 rounded-full" />
+            </div>
+            <div className="surface p-4 flex flex-col gap-3">
+              <div className="h-2 w-1/2 bg-white/30 rounded-full" />
+              <div className="h-4 w-full bg-white/80 rounded-full" />
+              <div className="h-3 w-4/6 bg-white/20 rounded-full" />
+            </div>
           </div>
 
+          <div className="surface-strong p-5 relative overflow-hidden">
+            <div className="absolute left-0 top-6 w-[70%] h-8 bg-white/10 rounded-r-full" />
+            <div className="absolute right-0 bottom-6 w-[55%] h-8 bg-white/20 rounded-l-full" />
+            <div className="absolute right-6 top-6 h-2 w-20 bg-white/50 rounded-full" />
+          </div>
         </div>
       </div>
     </div>

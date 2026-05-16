@@ -13,6 +13,7 @@
     "@google/genai": "^1.48.0",
     "@monaco-editor/react": "^4.7.0",
     "@tailwindcss/postcss": "^4.2.2",
+    "framer-motion": "^11.13.1",
     "katex": "^0.16.45",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

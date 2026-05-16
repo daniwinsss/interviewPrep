@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Mail, Lock, LogIn, User } from 'lucide-react';
+import { ArrowLeft, Lock, Mail, User } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Card } from '../components/Card';
+import { motion } from 'framer-motion';
+import Card from '../components/ui/Card';
+import Button from '../components/ui/Button';
+import Badge from '../components/ui/Badge';
 import { apiUrl } from '../lib/api';
 
 export default function Login() {
@@ -41,90 +44,92 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col font-sans text-slate-100 items-center justify-center p-6 relative">
-      <Link to="/" className="absolute top-6 left-6 text-slate-400 hover:text-white transition-colors flex items-center gap-2">
-          <ArrowLeft className="w-5 h-5" />
-          <span>Back to Home</span>
+    <div className="min-h-screen bg-black text-white flex items-center justify-center px-6 py-16 relative">
+      <div className="absolute inset-0 bg-grid opacity-40" />
+      <div className="absolute top-0 left-0 right-0 h-40 bg-radial" />
+
+      <Link to="/" className="absolute top-6 left-6 text-white/60 hover:text-white transition-colors flex items-center gap-2">
+        <ArrowLeft className="w-4 h-4" />
+        Back to Home
       </Link>
 
-      <Card className="w-full max-w-md bg-slate-900/80 p-8 border-slate-800 backdrop-blur-xl shadow-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold mb-2">
-            {isLogin ? 'Welcome back' : 'Create an account'}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="w-full max-w-md">
+        <Card className="surface-strong p-8 md:p-10">
+          <Badge variant="outline" className="mb-6">Secure access</Badge>
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {isLogin ? 'Welcome back' : 'Create your account'}
           </h1>
-          <p className="text-slate-400">
-            {isLogin ? 'Log in to continue your prep.' : 'Sign up to start tracking your progress.'}
+          <p className="text-white/60 mt-3">
+            {isLogin
+              ? 'Resume your interview prep with a single sign-in.'
+              : 'Start tracking interviews, quizzes, and AI feedback.'}
           </p>
-        </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-          {!isLogin && (
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-slate-300">Full Name</label>
-              <div className="relative group">
-                <User className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-                <input 
-                  type="text" 
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+            {!isLogin && (
+              <div>
+                <label className="text-xs uppercase tracking-[0.3em] text-white/50">Full Name</label>
+                <div className="relative mt-2">
+                  <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                  <input
+                    type="text"
+                    required
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="input pl-11"
+                    placeholder="John Doe"
+                  />
+                </div>
+              </div>
+            )}
+
+            <div>
+              <label className="text-xs uppercase tracking-[0.3em] text-white/50">Email Address</label>
+              <div className="relative mt-2">
+                <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                <input
+                  type="email"
                   required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg py-3 pl-11 pr-4 text-slate-100 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600"
-                  placeholder="John Doe"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="input pl-11"
+                  placeholder="you@example.com"
                 />
               </div>
             </div>
-          )}
 
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-300">Email Address</label>
-            <div className="relative group">
-              <Mail className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-              <input 
-                type="email" 
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-3 pl-11 pr-4 text-slate-100 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600"
-                placeholder="you@example.com"
-              />
+            <div>
+              <label className="text-xs uppercase tracking-[0.3em] text-white/50">Password</label>
+              <div className="relative mt-2">
+                <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="input pl-11"
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
+
+            <Button type="submit" className="w-full justify-center" size="lg">
+              {isLogin ? 'Log in' : 'Create account'}
+            </Button>
+          </form>
+
+          <div className="mt-8 text-center text-sm text-white/60">
+            {isLogin ? "Don't have an account? " : 'Already have an account? '}
+            <button
+              type="button"
+              onClick={() => setIsLogin(!isLogin)}
+              className="text-white font-semibold"
+            >
+              {isLogin ? 'Create one' : 'Log in'}
+            </button>
           </div>
-
-          <div className="flex flex-col gap-2">
-            <label className="text-sm font-medium text-slate-300">Password</label>
-            <div className="relative group">
-              <Lock className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-500 transition-colors" />
-              <input 
-                type="password" 
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg py-3 pl-11 pr-4 text-slate-100 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-slate-600"
-                placeholder="••••••••"
-              />
-            </div>
-          </div>
-
-          <button 
-            type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all mt-4 shadow-lg shadow-blue-500/20"
-          >
-            {isLogin ? <LogIn className="w-5 h-5" /> : null}
-            {isLogin ? 'Log In' : 'Sign Up'}
-          </button>
-        </form>
-
-        <div className="mt-8 text-center text-sm text-slate-400">
-          {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button 
-            type="button"
-            onClick={() => setIsLogin(!isLogin)}
-            className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
-          >
-            {isLogin ? 'Sign up here' : 'Log in here'}
-          </button>
-        </div>
-      </Card>
+        </Card>
+      </motion.div>
     </div>
   );
 }

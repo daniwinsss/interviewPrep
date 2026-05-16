@@ -1,146 +1,172 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { Card, CardHeader } from '../components/Card';
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowUpRight, Bot, Code2, Database, Terminal } from 'lucide-react';
 import { AccentHeading } from '../components/AccentHeading';
 import { HeroVisual } from '../components/HeroVisual';
-import { Terminal, Bot, Database, Code2, ArrowRight, LogOut } from 'lucide-react';
+import Card from '../components/ui/Card';
+import Badge from '../components/ui/Badge';
+import Button from '../components/ui/Button';
+import Section from '../components/ui/Section';
+import Shell from '../components/ui/Shell';
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: (delay = 0) => ({
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }
+  })
+};
 
 export default function Home() {
-  const navigate = useNavigate();
-  const [isLogged, setIsLogged] = useState(false);
-
-  useEffect(() => {
-    setIsLogged(!!localStorage.getItem('token'));
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    setIsLogged(false);
-    window.location.reload(); // Force refresh to reset UI state
-  };
-
   return (
-    <div className="min-h-screen bg-slate-950 font-sans selection:bg-blue-500/30">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 h-16 px-6 border-b border-white/5 bg-slate-900/60 backdrop-blur-xl flex items-center z-50">
-        <div className="flex items-center gap-3 font-semibold text-lg text-slate-100">
-          <Code2 className="text-blue-500" />
-          interviewPrep
-        </div>
-        <div className="flex items-center gap-4 ml-auto">
-           {isLogged ? (
-             <button 
-               onClick={handleLogout} 
-               type="button"
-               className="bg-slate-800 hover:bg-red-500/10 border border-slate-700 hover:border-red-500/20 hover:text-red-400 text-slate-300 px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 shadow-sm active:scale-95 cursor-pointer"
-             >
-               <LogOut className="w-4 h-4" />
-               Log out
-             </button>
-           ) : (
-             <>
-               <Link to="/login" className="text-slate-300 hover:text-white transition-colors text-sm font-medium">Log in</Link>
-               <Link to="/login" className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-lg shadow-blue-500/20">
-                 Get Started
-               </Link>
-             </>
-           )}
-        </div>
-      </nav>
-
-      <main className="pt-24 pb-16 px-6 max-w-7xl mx-auto flex flex-col gap-24">
-        
-        {/* Hero Section */}
-        <section className="flex flex-col lg:flex-row items-center justify-between gap-12 pt-12">
-          <div className="flex-1 flex flex-col items-start gap-6">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-sm font-medium">
-               <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-               V1.0 is now live
-            </div>
-            
-            <AccentHeading text="Master your interviews" />
-            
-            <p className="text-lg text-slate-400 max-w-xl leading-relaxed">
-              The ultimate AI-powered preparation platform. Solve real-world coding challenges, practice mock interviews, and analyze your projects with state-of-the-art LLMs.
+    <Shell showTopBar>
+      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-black/70 px-6 py-12 md:px-12 md:py-16 shadow-float">
+        <div className="absolute inset-0 bg-grid opacity-40" />
+        <div className="absolute -top-32 -right-24 w-72 h-72 bg-white/10 blur-[160px]" />
+        <div className="relative grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+          <motion.div initial="hidden" animate="visible" variants={fadeUp}>
+            <Badge variant="outline" className="mb-6">Premium AI Interview OS</Badge>
+            <AccentHeading text="Build unstoppable interview clarity" />
+            <p className="text-lg text-white/70 mt-6 max-w-xl leading-relaxed">
+              A focused, high-contrast workspace that blends AI mock interviews, curated problem sets, and core subject drills into one premium prep cockpit.
             </p>
-            
-            <div className="flex gap-4 mt-4">
-               <Link to="/interview" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-3 rounded-lg font-medium transition-all shadow-lg shadow-blue-500/20">
-                 Start practicing
-                 <ArrowRight className="w-4 h-4" />
-               </Link>
-               <Link to="/problems" className="px-6 py-3 rounded-lg flex items-center justify-center font-medium text-slate-300 hover:text-white bg-slate-900 border border-slate-800 hover:border-slate-700 transition-all">
-                 View problems
-               </Link>
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Link to="/interview">
+                <Button size="lg" icon={<ArrowUpRight className="w-4 h-4" />}>
+                  Start AI interview
+                </Button>
+              </Link>
+              <Link to="/problems">
+                <Button variant="secondary" size="lg">
+                  Explore problem sets
+                </Button>
+              </Link>
             </div>
+            <div className="mt-10 grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs text-white/60">
+              {['Realtime feedback', 'Voice + live coding', 'Enterprise-grade clarity'].map((item) => (
+                <div key={item} className="glass px-4 py-3">{item}</div>
+              ))}
+            </div>
+          </motion.div>
+          <motion.div initial="hidden" animate="visible" variants={fadeUp} custom={0.15}>
+            <HeroVisual />
+          </motion.div>
+        </div>
+      </div>
+
+      <div className="mt-20 space-y-20">
+        <Section
+          title="All-in-one interview command center"
+          subtitle="Navigate seamlessly between live coding, AI interviews, and core subject drills with a consistent, premium experience."
+        >
+          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+            {[
+              {
+                title: 'Online Judge',
+                subtitle: 'Secure, production-grade evaluation pipeline',
+                icon: Terminal,
+                copy: 'Run against curated test suites with instant feedback and rich performance insights.',
+                link: '/problems'
+              },
+              {
+                title: 'AI Mock Interviews',
+                subtitle: 'Conversational + voice-enabled sessions',
+                icon: Bot,
+                copy: 'Simulate real interviewer pressure with live prompts, phases, and guidance.',
+                link: '/interview'
+              },
+              {
+                title: 'Core Subjects',
+                subtitle: 'MCQ drills with adaptive difficulty',
+                icon: Database,
+                copy: 'Sharpen fundamentals across OS, DBMS, Networks, and Architecture.',
+                link: '/mcq'
+              }
+            ].map((item, idx) => {
+              const Icon = item.icon;
+              return (
+                <motion.div
+                  key={item.title}
+                  initial="hidden"
+                  whileInView="visible"
+                  viewport={{ once: true, amount: 0.2 }}
+                  variants={fadeUp}
+                  custom={0.1 * idx}
+                >
+                  <Link to={item.link} className="block h-full">
+                    <Card className="h-full flex flex-col gap-6">
+                      <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold text-white">{item.title}</h3>
+                        <p className="text-sm text-white/60 mt-2">{item.subtitle}</p>
+                        <p className="text-sm text-white/70 mt-4 leading-relaxed">{item.copy}</p>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-white/80">
+                        Explore module <ArrowUpRight className="w-4 h-4" />
+                      </div>
+                    </Card>
+                  </Link>
+                </motion.div>
+              );
+            })}
           </div>
-          
-          <div className="flex-1 w-full flex justify-end">
-             <HeroVisual />
+        </Section>
+
+        <Section
+          title="Why teams love the experience"
+          subtitle="Every surface is engineered for clarity, speed, and confidence. Perfect for demos, recruiting pipelines, or personal mastery."
+          action={(
+            <Link to="/login">
+              <Button variant="outline">Get started</Button>
+            </Link>
+          )}
+        >
+          <div className="grid lg:grid-cols-3 gap-6">
+            {[
+              {
+                title: 'High-contrast workflow',
+                copy: 'Premium black + white palette, tuned typography, and sharp hierarchy for perfect readability.'
+              },
+              {
+                title: 'Seamless navigation',
+                copy: 'Move between practice modes with zero clutter and an always-on command center feel.'
+              },
+              {
+                title: 'Demo ready polish',
+                copy: 'Motion design and micro-interactions deliver the wow factor without sacrificing speed.'
+              }
+            ].map((item) => (
+              <Card key={item.title} hover={false} className="surface-strong">
+                <h3 className="text-lg font-semibold text-white">{item.title}</h3>
+                <p className="text-sm text-white/65 mt-4 leading-relaxed">{item.copy}</p>
+              </Card>
+            ))}
           </div>
-        </section>
+        </Section>
 
-        {/* Features / Modules Section */}
-        <section className="flex flex-col gap-12">
-           <div className="text-center flex flex-col items-center">
-             <AccentHeading text="Everything you need to succeed" className="text-3xl lg:text-4xl" />
-             <p className="text-slate-400 mt-4 max-w-2xl">Four purpose-built modules designed to simulate real-world interviews and track your progress.</p>
-           </div>
-           
-           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Link to="/problems" className="block focus:outline-none">
-                <Card>
-                   <CardHeader 
-                     title="Online Judge" 
-                     subtitle="Docker-isolated code execution"
-                     action={<Terminal className="text-blue-500" />}
-                   />
-                   <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                      Solve actual company questions in Python and JS. Get real-time execution results with strict security limits.
-                   </p>
-                   <div className="h-1 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-blue-600 w-1/3 rounded-full" />
-                   </div>
-                </Card>
-              </Link>
-
-              <Link to="/interview" className="block focus:outline-none">
-                <Card>
-                   <CardHeader 
-                     title="AI Mock Interviews" 
-                     subtitle="LLM-based evaluations"
-                     action={<Bot className="text-blue-500" />}
-                   />
-                   <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                      Practice DSA and behavioral questions with an AI interviewer. Receive immediate rating and constructive feedback.
-                   </p>
-                   <div className="mt-auto flex gap-2">
-                      <span className="text-xs font-medium px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300">DSA</span>
-                      <span className="text-xs font-medium px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300">System Design</span>
-                   </div>
-                </Card>
-              </Link>
-
-              <Link to="/mcq" className="block focus:outline-none">
-                <Card>
-                   <CardHeader 
-                     title="Core Subjects" 
-                     subtitle="MCQ Practice mode"
-                     action={<Database className="text-blue-500" />}
-                   />
-                   <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                      Test your knowledge on OS, DBMS, Computer Networks, and OOPS with timed constraints.
-                   </p>
-                    <div className="mt-auto flex gap-2">
-                      <span className="text-xs font-medium px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded text-blue-400">DBMS</span>
-                      <span className="text-xs font-medium px-2 py-1 bg-slate-800 border border-slate-700 rounded text-slate-300">OS</span>
-                   </div>
-                </Card>
-              </Link>
-           </div>
-        </section>
-
-      </main>
-    </div>
+        <Section
+          title="Move faster with focused onboarding"
+          subtitle="Start a session in seconds. The platform auto-configures the right flow based on your intent." 
+        >
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { step: '01', title: 'Pick a mode', copy: 'Interview, problems, or core subjects.' },
+              { step: '02', title: 'Personalize', copy: 'Select topics, language, or repo.' },
+              { step: '03', title: 'Start', copy: 'Enter a distraction-free workspace.' }
+            ].map((item) => (
+              <Card key={item.step} hover={false} className="glass">
+                <p className="text-sm font-semibold text-white/70">{item.step}</p>
+                <h3 className="text-lg font-semibold text-white mt-2">{item.title}</h3>
+                <p className="text-sm text-white/60 mt-3">{item.copy}</p>
+              </Card>
+            ))}
+          </div>
+        </Section>
+      </div>
+    </Shell>
   );
 }
