@@ -16,6 +16,19 @@
     --shadow: 0 0% 0%;
   }
 
+  @theme {
+    --color-border: hsl(var(--border));
+    --color-background: hsl(var(--bg));
+    --color-foreground: hsl(var(--fg));
+    --color-muted: hsl(var(--muted));
+    --color-muted-foreground: hsl(var(--muted-2));
+    --color-accent: hsl(var(--accent));
+    --color-accent-strong: hsl(var(--accent-strong));
+    --color-surface: hsl(var(--surface));
+    --color-surface-2: hsl(var(--surface-2));
+    --color-surface-3: hsl(var(--surface-3));
+  }
+
   * {
     @apply border-border;
   }
