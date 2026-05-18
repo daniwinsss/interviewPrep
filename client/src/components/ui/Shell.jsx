@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Command, LogOut, Search, User } from 'lucide-react';
+import { GraduationCap, LogOut, Search, User } from 'lucide-react';
 import Button from './Button';
 import { motion } from 'framer-motion';
 
@@ -14,10 +14,10 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
   };
 
   const navItems = [
-    { name: 'Dashboard', path: '/' },
-    { name: 'Problems', path: '/problems' },
-    { name: 'AI Interview', path: '/interview' },
-    { name: 'Core Subjects', path: '/mcq' },
+    { name: 'Home', path: '/' },
+    { name: 'Practice', path: '/problems' },
+    { name: 'Mock Interview', path: '/interview' },
+    { name: 'MCQ Bank', path: '/mcq' },
   ];
 
   return (
@@ -25,15 +25,15 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
       {showTopBar && (
         <header className="fixed top-0 inset-x-0 z-50 transition-all duration-300">
           <div className="max-w-7xl mx-auto px-6 py-4">
-            <div className="glass border-white/5 bg-[#0b0b0c]/60 backdrop-blur-2xl rounded-3xl h-16 px-6 flex items-center gap-8 shadow-[0_0_50px_-20px_rgba(0,0,0,0.5)]">
+            <div className="glass border-slate-200/80 bg-white/70 backdrop-blur-2xl rounded-3xl h-16 px-6 flex items-center gap-8 shadow-[0_16px_40px_-28px_rgba(15,23,42,0.35)]">
               <Link to="/" className="flex items-center gap-3 group">
-                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-accent to-purple-500 p-[1px] transition-transform group-hover:scale-105 active:scale-95">
-                  <div className="w-full h-full rounded-[15px] bg-[#0b0b0c] flex items-center justify-center">
-                    <Command className="w-5 h-5 text-white" />
+                <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-emerald-500 to-emerald-700 p-[1px] transition-transform group-hover:scale-105 active:scale-95">
+                  <div className="w-full h-full rounded-[15px] bg-white flex items-center justify-center">
+                    <GraduationCap className="w-5 h-5 text-emerald-700" />
                   </div>
                 </div>
-                <span className="text-white font-bold tracking-tighter text-xl hidden sm:block">
-                  Antigravity
+                <span className="text-slate-900 font-bold tracking-tight text-xl hidden sm:block">
+                  PrepDost
                 </span>
               </Link>
 
@@ -45,14 +45,14 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
                       key={item.name} 
                       to={item.path} 
                       className={`relative px-4 py-2 text-sm font-semibold transition-all rounded-xl ${
-                        isActive ? 'text-white' : 'text-white/40 hover:text-white/70 hover:bg-white/5'
+                        isActive ? 'text-slate-900' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
                       }`}
                     >
                       {item.name}
                       {isActive && (
                         <motion.div 
                           layoutId="nav-pill" 
-                          className="absolute inset-0 bg-white/5 rounded-xl -z-10 border border-white/10"
+                          className="absolute inset-0 bg-emerald-50 rounded-xl -z-10 border border-emerald-100"
                         />
                       )}
                     </Link>
@@ -61,13 +61,13 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
               </nav>
 
               <div className="ml-auto flex items-center gap-4">
-                <button className="p-2 text-white/40 hover:text-white transition-colors">
+                <button className="p-2 text-slate-400 hover:text-slate-900 transition-colors">
                   <Search className="w-5 h-5" />
                 </button>
-                <div className="h-6 w-px bg-white/10 mx-1" />
+                <div className="h-6 w-px bg-slate-200 mx-1" />
                 {isLogged ? (
                   <div className="flex items-center gap-3">
-                    <button className="w-10 h-10 rounded-xl border border-white/10 bg-white/5 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all">
+                    <button className="w-10 h-10 rounded-xl border border-slate-200 bg-white flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-50 transition-all">
                       <User className="w-5 h-5" />
                     </button>
                     <Button variant="secondary" size="sm" onClick={handleLogout} className="h-10 px-4">
@@ -77,11 +77,11 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
                   </div>
                 ) : (
                   <div className="flex items-center gap-5">
-                    <Link to="/login" className="text-sm font-semibold text-white/60 hover:text-white transition-colors">
+                    <Link to="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">
                       Sign in
                     </Link>
                     <Link to="/login">
-                      <Button className="h-10 px-6 text-sm">Join Beta</Button>
+                      <Button className="h-10 px-6 text-sm">Get Started</Button>
                     </Link>
                   </div>
                 )}
@@ -99,12 +99,12 @@ export default function Shell({ children, title, subtitle, showTopBar = true }) 
             className="mb-16"
           >
             {title && (
-              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white mb-6">
+              <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-slate-900 mb-6">
                 {title}
               </h1>
             )}
             {subtitle && (
-              <p className="text-xl text-white/50 max-w-3xl leading-relaxed font-medium">
+              <p className="text-xl text-slate-600 max-w-3xl leading-relaxed font-medium">
                 {subtitle}
               </p>
             )}

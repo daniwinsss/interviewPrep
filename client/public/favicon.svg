@@ -1,17 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title>interviewPrep</title>
+  <title>PrepDost</title>
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#0f172a" />
-      <stop offset="100%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0b3d2a" />
     </linearGradient>
     <linearGradient id="accent" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#60a5fa" />
-      <stop offset="100%" stop-color="#22d3ee" />
+      <stop offset="0%" stop-color="#22c55e" />
+      <stop offset="100%" stop-color="#0f9d58" />
     </linearGradient>
   </defs>
   <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg)" />
-  <rect x="27" y="15" width="10" height="34" rx="5" fill="url(#accent)" />
-  <rect x="22" y="11" width="20" height="6" rx="3" fill="#e2e8f0" />
-  <rect x="22" y="47" width="20" height="6" rx="3" fill="#e2e8f0" />
+  <rect x="17" y="17" width="30" height="30" rx="10" fill="#0f172a" />
+  <rect x="22" y="24" width="6" height="18" rx="3" fill="url(#accent)" />
+  <rect x="30" y="22" width="12" height="4" rx="2" fill="#e2e8f0" />
+  <rect x="30" y="30" width="12" height="4" rx="2" fill="#e2e8f0" />
+  <rect x="30" y="38" width="12" height="4" rx="2" fill="#e2e8f0" />
 </svg>

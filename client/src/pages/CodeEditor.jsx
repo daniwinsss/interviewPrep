@@ -23,12 +23,12 @@ const statusIcon = {
   tle:         <Clock className="w-5 h-5 text-yellow-400" />,
 };
 
-const statusLabel = {
-  accepted:     'System Accepted',
-  wrong_answer: 'Logic Mismatch',
-  error:        'Runtime Exception',
-  tle:          'Latency Threshold Exceeded',
-};
+  const statusLabel = {
+    accepted:     'Accepted',
+    wrong_answer: 'Wrong Answer',
+    error:        'Runtime Error',
+    tle:          'Time Limit Exceeded',
+  };
 
 function escapeHtml(text = '') {
   return text
@@ -112,7 +112,7 @@ const ProblemDescriptionHtml = memo(function ProblemDescriptionHtml({ html, desc
   return (
     <div
       ref={descriptionRef}
-      className="prose prose-invert prose-slate max-w-none prose-h4:text-xs prose-h4:uppercase prose-h4:tracking-[0.2em] prose-h4:font-bold prose-h4:text-white/40 prose-p:text-white/70 prose-p:leading-relaxed prose-pre:bg-white/5 prose-pre:border prose-pre:border-white/10 prose-pre:rounded-2xl"
+      className="prose prose-slate max-w-none prose-h4:text-xs prose-h4:uppercase prose-h4:tracking-[0.2em] prose-h4:font-bold prose-h4:text-slate-500 prose-p:text-slate-700 prose-p:leading-relaxed prose-pre:bg-slate-100 prose-pre:border prose-pre:border-slate-200 prose-pre:rounded-2xl"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -212,29 +212,29 @@ export default function CodeEditor() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505] text-white overflow-hidden">
+    <div className="h-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden">
       {/* Cinematic Header */}
-      <header className="h-16 border-b border-white/5 flex items-center px-6 justify-between bg-[#0b0b0c] relative z-20">
+      <header className="h-16 border-b border-slate-200 flex items-center px-6 justify-between bg-white relative z-20">
         <div className="flex items-center gap-6">
-          <Link to="/problems" className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
+          <Link to="/problems" className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div className="flex flex-col">
             <div className="flex items-center gap-3">
-              <span className="text-[10px] text-white/30 uppercase tracking-[0.3em] font-bold">Workspace</span>
-              <div className="h-1 w-1 rounded-full bg-white/20" />
-              <span className="text-sm font-bold text-white">
-                {loading ? 'Decrypting signal...' : (problem?.title || 'Signal Lost')}
+              <span className="text-[10px] text-slate-400 uppercase tracking-[0.3em] font-bold">PrepDost Code</span>
+              <div className="h-1 w-1 rounded-full bg-slate-300" />
+              <span className="text-sm font-bold text-slate-900">
+                {loading ? 'Loading problem...' : (problem?.title || 'Problem unavailable')}
               </span>
             </div>
           </div>
           {problem && (
             <div className="flex items-center gap-2">
-              <Badge className="bg-white/5 text-white/40 border-white/10 uppercase tracking-widest text-[9px] font-bold">
+              <Badge className="bg-slate-100 text-slate-600 border-slate-200 uppercase tracking-widest text-[9px] font-bold">
                 {problem.difficulty}
               </Badge>
               {problem.division && (
-                <Badge className="bg-accent/10 text-accent border-accent/20 uppercase tracking-widest text-[9px] font-bold">
+                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase tracking-widest text-[9px] font-bold">
                   {problem.division}
                 </Badge>
               )}
@@ -247,25 +247,25 @@ export default function CodeEditor() {
             <select
               value={language}
               onChange={e => handleLanguageChange(e.target.value)}
-              className="appearance-none bg-white/5 border border-white/10 text-white/80 text-xs font-bold uppercase tracking-widest px-4 py-2 pr-10 rounded-xl focus:outline-none focus:border-white/20 cursor-pointer"
+              className="appearance-none bg-white border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-widest px-4 py-2 pr-10 rounded-xl focus:outline-none focus:border-emerald-400 cursor-pointer"
             >
               {(problem?.languages || ['cpp', 'java', 'python']).map(lang => (
                 <option key={lang} value={lang}>{LANG_MAP[lang]?.label || lang}</option>
               ))}
             </select>
-            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <ChevronDown className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
 
-          <div className="h-6 w-px bg-white/10 mx-2" />
+          <div className="h-6 w-px bg-slate-200 mx-2" />
 
           <Button 
             variant="secondary" 
             onClick={handleRun} 
             disabled={isRunning || isSubmitting} 
-            className="h-10 px-5 border-white/10 bg-white/5 hover:bg-white/10"
+            className="h-10 px-5"
           >
             <Zap className="w-4 h-4 mr-2" />
-            {isRunning ? 'Executing...' : 'Run Signal'}
+            {isRunning ? 'Running...' : 'Run'}
           </Button>
 
           <Button 
@@ -274,7 +274,7 @@ export default function CodeEditor() {
             className="h-10 px-6"
           >
             <Send className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Validating...' : 'Commit Signal'}
+            {isSubmitting ? 'Submitting...' : 'Submit'}
           </Button>
         </div>
       </header>
@@ -282,23 +282,23 @@ export default function CodeEditor() {
       {/* Main Grid */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar: Problem Content */}
-        <div className="w-[450px] border-r border-white/5 flex flex-col bg-[#0b0b0c] relative z-10 shadow-2xl">
-          <div className="flex border-b border-white/5 bg-white/[0.02]">
+        <div className="w-[450px] border-r border-slate-200 flex flex-col bg-white relative z-10 shadow-soft">
+          <div className="flex border-b border-slate-200 bg-slate-50">
             {[
-              { id: 'description', label: 'Briefing', icon: Info },
-              { id: 'results', label: 'Diagnostics', icon: TerminalSquare }
+              { id: 'description', label: 'Description', icon: Info },
+              { id: 'results', label: 'Results', icon: TerminalSquare }
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 py-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all relative ${
-                  activeTab === tab.id ? 'text-white' : 'text-white/30 hover:text-white/50'
+                  activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 hover:text-slate-600'
                 }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
                 {tab.label}
                 {activeTab === tab.id && (
-                  <motion.div layoutId="tab-active" className="absolute bottom-0 inset-x-0 h-[2px] bg-accent shadow-[0_0_10px_rgba(124,140,255,0.5)]" />
+                  <motion.div layoutId="tab-active" className="absolute bottom-0 inset-x-0 h-[2px] bg-emerald-500 shadow-[0_0_10px_rgba(15,157,88,0.35)]" />
                 )}
               </button>
             ))}
@@ -317,30 +317,30 @@ export default function CodeEditor() {
                   {loading ? (
                     <div className="space-y-4">
                       {[...Array(6)].map((_, i) => (
-                        <div key={i} className="h-3 bg-white/5 rounded-full animate-pulse" style={{ width: `${80 - i * 10}%` }} />
+                        <div key={i} className="h-3 bg-slate-200 rounded-full animate-pulse" style={{ width: `${80 - i * 10}%` }} />
                       ))}
                     </div>
                   ) : !problem ? (
-                    <div className="py-12 text-center text-white/30 uppercase tracking-widest text-[10px] font-bold">Signal Encrypted / Lost</div>
+                    <div className="py-12 text-center text-slate-400 uppercase tracking-widest text-[10px] font-bold">Problem not available</div>
                   ) : (
                     <>
                       <div>
-                        <h1 className="text-3xl font-bold text-white tracking-tight mb-2">{problem.title}</h1>
-                        <p className="text-xs font-bold text-accent uppercase tracking-widest">{problem.contest || 'Independent Core'}</p>
+                        <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-2">{problem.title}</h1>
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-widest">{problem.contest || 'Practice Set'}</p>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="surface p-4 rounded-2xl border-white/5">
-                          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-2">Time Limit</span>
-                          <div className="flex items-center gap-2 text-white font-bold">
-                            <Clock className="w-4 h-4 text-white/40" />
+                        <div className="surface p-4 rounded-2xl border-slate-200">
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Time Limit</span>
+                          <div className="flex items-center gap-2 text-slate-900 font-bold">
+                            <Clock className="w-4 h-4 text-slate-400" />
                             {problem.timeLimit / 1000}s
                           </div>
                         </div>
-                        <div className="surface p-4 rounded-2xl border-white/5">
-                          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest block mb-2">Memory</span>
-                          <div className="flex items-center gap-2 text-white font-bold">
-                            <MemoryStick className="w-4 h-4 text-white/40" />
+                        <div className="surface p-4 rounded-2xl border-slate-200">
+                          <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Memory</span>
+                          <div className="flex items-center gap-2 text-slate-900 font-bold">
+                            <MemoryStick className="w-4 h-4 text-slate-400" />
                             {problem.memoryLimit}MB
                           </div>
                         </div>
@@ -352,19 +352,19 @@ export default function CodeEditor() {
                       {problem.testCases?.length > 0 && (
                         <div className="space-y-4">
                           <div className="flex items-center gap-3">
-                            <div className="h-px flex-1 bg-white/5" />
-                            <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Training Samples</span>
-                            <div className="h-px flex-1 bg-white/5" />
+                            <div className="h-px flex-1 bg-slate-200" />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sample IO</span>
+                            <div className="h-px flex-1 bg-slate-200" />
                           </div>
                           {problem.testCases.map((tc, i) => (
-                            <div key={i} className="rounded-2xl border border-white/5 bg-white/[0.02] overflow-hidden">
-                              <div className="grid grid-cols-2 divide-x divide-white/5 border-b border-white/5">
-                                <div className="p-3 text-[9px] font-bold text-white/30 uppercase tracking-widest text-center">Input</div>
-                                <div className="p-3 text-[9px] font-bold text-white/30 uppercase tracking-widest text-center">Expected</div>
+                            <div key={i} className="rounded-2xl border border-slate-200 bg-white overflow-hidden">
+                              <div className="grid grid-cols-2 divide-x divide-slate-200 border-b border-slate-200">
+                                <div className="p-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest text-center">Input</div>
+                                <div className="p-3 text-[9px] font-bold text-slate-500 uppercase tracking-widest text-center">Expected</div>
                               </div>
-                              <div className="grid grid-cols-2 divide-x divide-white/5 font-mono text-[11px]">
-                                <pre className="p-4 text-white/70 whitespace-pre-wrap">{tc.input}</pre>
-                                <pre className="p-4 text-white whitespace-pre-wrap">{tc.output}</pre>
+                              <div className="grid grid-cols-2 divide-x divide-slate-200 font-mono text-[11px]">
+                                <pre className="p-4 text-slate-600 whitespace-pre-wrap">{tc.input}</pre>
+                                <pre className="p-4 text-slate-900 whitespace-pre-wrap">{tc.output}</pre>
                               </div>
                             </div>
                           ))}
@@ -383,23 +383,23 @@ export default function CodeEditor() {
                 >
                   {!output ? (
                     <div className="py-32 text-center">
-                      <Terminal className="w-12 h-12 text-white/5 mx-auto mb-4" />
-                      <p className="text-[10px] font-bold text-white/20 uppercase tracking-widest">Awaiting diagnostic signal...</p>
+                      <Terminal className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Run code to see results</p>
                     </div>
                   ) : output.type === 'run' ? (
                     <div className="space-y-6">
-                      <div className={`p-6 rounded-3xl border flex items-center gap-4 ${output.status === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
+                      <div className={`p-6 rounded-3xl border flex items-center gap-4 ${output.status === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
                         {output.status === 'success' ? <CheckCircle className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-widest">{output.status === 'success' ? 'Execution Complete' : 'Pattern Mismatch'}</p>
-                          <p className="text-xl font-bold">{output.status === 'success' ? `${output.time}ms` : 'System Error'}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest">{output.status === 'success' ? 'Execution complete' : 'Execution failed'}</p>
+                          <p className="text-xl font-bold">{output.status === 'success' ? `${output.time}ms` : 'Error'}</p>
                         </div>
                       </div>
                       
                       {output.stdout && (
                         <div className="space-y-3">
-                          <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest ml-4">Terminal Output</span>
-                          <pre className="surface p-6 rounded-3xl border-white/5 font-mono text-xs text-white/80 whitespace-pre-wrap leading-relaxed">
+                          <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest ml-4">Output</span>
+                          <pre className="surface p-6 rounded-3xl border-slate-200 font-mono text-xs text-slate-700 whitespace-pre-wrap leading-relaxed">
                             {output.stdout}
                           </pre>
                         </div>
@@ -407,8 +407,8 @@ export default function CodeEditor() {
                       
                       {output.stderr && (
                         <div className="space-y-3">
-                          <span className="text-[9px] font-bold text-rose-500/50 uppercase tracking-widest ml-4">Error Stream</span>
-                          <pre className="bg-rose-500/5 p-6 rounded-3xl border border-rose-500/10 font-mono text-xs text-rose-300/80 whitespace-pre-wrap leading-relaxed">
+                          <span className="text-[9px] font-bold text-rose-500/70 uppercase tracking-widest ml-4">Error</span>
+                          <pre className="bg-rose-50 p-6 rounded-3xl border border-rose-200 font-mono text-xs text-rose-600 whitespace-pre-wrap leading-relaxed">
                             {output.stderr}
                           </pre>
                         </div>
@@ -416,33 +416,33 @@ export default function CodeEditor() {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      <div className={`p-6 rounded-3xl border flex items-center gap-5 ${output.status === 'accepted' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-400'}`}>
-                        <div className="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center">
+                      <div className={`p-6 rounded-3xl border flex items-center gap-5 ${output.status === 'accepted' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
+                        <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center">
                           {statusIcon[output.status] || <AlertTriangle className="w-8 h-8" />}
                         </div>
                         <div>
                           <p className="text-[10px] font-bold uppercase tracking-widest mb-1">{statusLabel[output.status] || output.status}</p>
-                          <p className="text-2xl font-bold text-white">
-                            {output.passed} <span className="text-white/20">/</span> {output.total}
+                          <p className="text-2xl font-bold text-slate-900">
+                            {output.passed} <span className="text-slate-300">/</span> {output.total}
                           </p>
                         </div>
                       </div>
 
                       <div className="space-y-3">
                         {output.results?.map((r, i) => (
-                          <div key={i} className="surface-strong p-4 rounded-2xl border-white/5 group hover:border-white/10 transition-all">
+                          <div key={i} className="surface-strong p-4 rounded-2xl border-slate-200 group hover:border-emerald-200 transition-all">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-3">
-                                <div className={`w-1.5 h-1.5 rounded-full ${r.passed ? 'bg-emerald-400' : 'bg-rose-400'}`} />
-                                <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Probe {r.testCase}</span>
+                                <div className={`w-1.5 h-1.5 rounded-full ${r.passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Case {r.testCase}</span>
                               </div>
-                              <span className={`text-[10px] font-bold ${r.passed ? 'text-emerald-400' : 'text-rose-400'}`}>{r.time}ms</span>
+                              <span className={`text-[10px] font-bold ${r.passed ? 'text-emerald-600' : 'text-rose-600'}`}>{r.time}ms</span>
                             </div>
                             {!r.passed && r.input !== undefined && (
-                              <div className="mt-4 space-y-3 border-t border-white/5 pt-4 font-mono text-[10px] text-white/40">
-                                {r.input && <div><span className="text-accent/50 uppercase">Signal Input</span><pre className="mt-1 text-white/70 bg-black/40 p-2 rounded-lg">{r.input}</pre></div>}
-                                {r.expected && <div><span className="text-emerald-500/50 uppercase">Expected Pattern</span><pre className="mt-1 text-white/70 bg-black/40 p-2 rounded-lg">{r.expected}</pre></div>}
-                                {r.actual && <div><span className="text-rose-500/50 uppercase">Observed Signal</span><pre className="mt-1 text-white/70 bg-black/40 p-2 rounded-lg">{r.actual}</pre></div>}
+                              <div className="mt-4 space-y-3 border-t border-slate-200 pt-4 font-mono text-[10px] text-slate-500">
+                                {r.input && <div><span className="text-emerald-600 uppercase">Input</span><pre className="mt-1 text-slate-700 bg-slate-100 p-2 rounded-lg">{r.input}</pre></div>}
+                                {r.expected && <div><span className="text-emerald-600 uppercase">Expected</span><pre className="mt-1 text-slate-700 bg-slate-100 p-2 rounded-lg">{r.expected}</pre></div>}
+                                {r.actual && <div><span className="text-rose-600 uppercase">Output</span><pre className="mt-1 text-slate-700 bg-slate-100 p-2 rounded-lg">{r.actual}</pre></div>}
                               </div>
                             )}
                           </div>
@@ -457,10 +457,10 @@ export default function CodeEditor() {
         </div>
 
         {/* Right Content: IDE */}
-        <div className="flex-1 flex flex-col bg-[#050505]">
+        <div className="flex-1 flex flex-col bg-slate-50">
           <div className="flex-1 relative">
             <div className="absolute inset-0 z-0 opacity-20 pointer-events-none">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-accent/10 blur-[180px] rounded-full" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-emerald-100 blur-[180px] rounded-full" />
             </div>
             <div className="h-full relative z-10">
               <Editor
@@ -477,7 +477,7 @@ export default function CodeEditor() {
                   scrollBeyondLastLine: false,
                   lineNumbers: 'on',
                   renderLineHighlight: 'all',
-                  backgroundColor: '#050505',
+                  backgroundColor: '#0f172a',
                   cursorBlinking: 'smooth',
                   cursorSmoothCaretAnimation: 'on',
                   smoothScrolling: true,
@@ -488,18 +488,18 @@ export default function CodeEditor() {
           </div>
 
           {/* Input Panel */}
-          <div className="h-64 border-t border-white/5 flex flex-col bg-[#0b0b0c]">
-            <div className="h-12 border-b border-white/5 flex items-center px-6 bg-white/[0.01]">
+          <div className="h-64 border-t border-slate-200 flex flex-col bg-white">
+            <div className="h-12 border-b border-slate-200 flex items-center px-6 bg-slate-50">
               <div className="flex items-center gap-3">
-                <Terminal className="w-4 h-4 text-white/30" />
-                <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Input Stream</span>
+                <Terminal className="w-4 h-4 text-slate-400" />
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Custom input</span>
               </div>
             </div>
             <textarea
               value={customInput}
               onChange={e => setCustomInput(e.target.value)}
-              placeholder="Inject custom stdin signal here..."
-              className="flex-1 bg-transparent p-8 font-mono text-xs text-white/60 resize-none outline-none placeholder:text-white/10 leading-relaxed"
+              placeholder="Add custom input for a dry run..."
+              className="flex-1 bg-transparent p-8 font-mono text-xs text-slate-600 resize-none outline-none placeholder:text-slate-400 leading-relaxed"
             />
           </div>
         </div>

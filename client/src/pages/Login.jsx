@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Lock, Mail, User, Shield, Sparkles, Zap, Cpu } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { ArrowLeft, Lock, Mail, User, Shield, Sparkles, Zap, Cpu, CheckCircle2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import Button from '../components/ui/Button';
@@ -39,64 +39,101 @@ export default function Login() {
       }
     } catch (err) {
       console.error(err);
-      alert('Neural link disrupted - Check backend connection');
+      alert('Unable to connect. Please check the server and try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const passwordScore = useMemo(() => {
+    if (!password) return 0;
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (/[A-Z]/.test(password)) score += 1;
+    if (/[0-9]/.test(password)) score += 1;
+    if (/[^A-Za-z0-9]/.test(password)) score += 1;
+    return score;
+  }, [password]);
+
+  const strengthLabel = ['Weak', 'Fair', 'Good', 'Strong', 'Excellent'][passwordScore] || 'Weak';
+
   return (
-    <div className="min-h-screen bg-[#050505] text-white flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Cinematic Background */}
-      <div className="absolute inset-0 z-0">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-accent/5 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-purple-500/5 blur-[100px] rounded-full" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.03] pointer-events-none" />
+    <div className="min-h-screen bg-slate-50 text-slate-900 grid lg:grid-cols-2">
+      <div className="relative hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-emerald-900 to-slate-900 text-white">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/20 flex items-center justify-center">
+            <Shield className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold">PrepDost</p>
+            <p className="text-xs text-white/70">AI Interview Prep Platform</p>
+          </div>
+        </div>
+
+        <div className="space-y-6 max-w-md">
+          <h1 className="text-4xl font-semibold leading-tight">
+            {isLogin ? 'Welcome back to PrepDost' : 'Build your PrepDost profile'}
+          </h1>
+          <p className="text-white/80">
+            Practice interviews, track progress, and stay placement ready with AI-backed insights.
+          </p>
+          <div className="grid gap-4">
+            {[
+              'AI-driven mock interviews and feedback',
+              'Daily challenge and streak tracking',
+              'Topic mastery and placement readiness'
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 text-sm">
+                <CheckCircle2 className="w-4 h-4 text-emerald-300" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="text-xs text-white/70">
+          Trusted by student communities and campus hiring teams.
+        </div>
       </div>
 
-      <Link 
-        to="/" 
-        className="absolute top-8 left-8 text-white/30 hover:text-white transition-all flex items-center gap-2 group z-20"
-      >
-        <div className="w-8 h-8 rounded-lg border border-white/5 flex items-center justify-center group-hover:bg-white/5 transition-all">
-          <ArrowLeft className="w-4 h-4" />
-        </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest">Abort Sequence</span>
-      </Link>
-
-      <motion.div 
-        initial={{ opacity: 0, y: 20, scale: 0.98 }} 
-        animate={{ opacity: 1, y: 0, scale: 1 }} 
-        transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} 
-        className="w-full max-w-[440px] z-10"
-      >
-        <div className="surface-strong p-10 md:p-12 rounded-[48px] border-white/5 shadow-2xl backdrop-blur-2xl relative overflow-hidden">
-          {/* Decorative Elements */}
-          <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
-            <Shield className="w-48 h-48" />
+      <div className="relative flex items-center justify-center p-8">
+        <Link 
+          to="/" 
+          className="absolute top-8 left-8 text-slate-500 hover:text-slate-900 transition-all flex items-center gap-2 group"
+        >
+          <div className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center group-hover:bg-slate-100 transition-all">
+            <ArrowLeft className="w-4 h-4" />
           </div>
+          <span className="text-xs font-semibold">Back to home</span>
+        </Link>
 
-          <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="w-12 h-12 rounded-2xl bg-white text-black flex items-center justify-center shadow-xl">
+        <motion.div 
+          initial={{ opacity: 0, y: 20, scale: 0.98 }} 
+          animate={{ opacity: 1, y: 0, scale: 1 }} 
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }} 
+          className="w-full max-w-[480px]"
+        >
+          <div className="surface-strong p-10 md:p-12 rounded-[36px] border-slate-200 shadow-soft bg-white">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
                 <Shield className="w-6 h-6" />
               </div>
               <div className="flex flex-col">
-                <span className="text-[10px] font-bold text-accent uppercase tracking-[0.3em]">Security Protocol</span>
-                <span className="text-xs font-bold text-white/40 uppercase tracking-widest">v4.0.2 Stable</span>
+                <span className="text-xs font-semibold text-emerald-600 uppercase tracking-widest">PrepDost Access</span>
+                <span className="text-xs text-slate-500">Secure sign in</span>
               </div>
             </div>
 
-            <h1 className="text-3xl font-black tracking-tighter mb-3">
-              {isLogin ? 'INITIALIZE LINK' : 'PROVISION ACCOUNT'}
+            <h1 className="text-3xl font-semibold tracking-tight mb-2">
+              {isLogin ? 'Sign in to PrepDost' : 'Create your PrepDost account'}
             </h1>
-            <p className="text-sm text-white/40 leading-relaxed mb-10">
+            <p className="text-sm text-slate-500 leading-relaxed mb-8">
               {isLogin
-                ? 'Re-establish neural connection to resume your high-fidelity interview training.'
-                : 'Configure your candidate profile and deploy your personalized AI interview ecosystem.'}
+                ? 'Continue your placement prep with AI feedback and daily challenges.'
+                : 'Start practicing with mock interviews, MCQs, and curated problem sets.'}
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <AnimatePresence mode="wait">
                 {!isLogin && (
                   <motion.div
@@ -106,16 +143,16 @@ export default function Login() {
                     exit={{ opacity: 0, height: 0 }}
                     className="space-y-2"
                   >
-                    <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] ml-1">Identity Tag</label>
+                    <label className="text-xs font-semibold text-slate-600">Full name</label>
                     <div className="relative group">
-                      <User className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-accent transition-colors" />
+                      <User className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                       <input
                         type="text"
                         required
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-black/40 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm font-medium text-white focus:outline-none focus:border-white/20 focus:bg-black/60 transition-all placeholder:text-white/10"
-                        placeholder="CANDIDATE NAME"
+                        className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-emerald-400 transition-all placeholder:text-slate-400"
+                        placeholder="Your name"
                       />
                     </div>
                   </motion.div>
@@ -123,74 +160,93 @@ export default function Login() {
               </AnimatePresence>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] ml-1">Communication Vector</label>
+                <label className="text-xs font-semibold text-slate-600">Email address</label>
                 <div className="relative group">
-                  <Mail className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-accent transition-colors" />
+                  <Mail className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <input
                     type="email"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-black/40 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm font-medium text-white focus:outline-none focus:border-white/20 focus:bg-black/60 transition-all placeholder:text-white/10"
-                    placeholder="EMAIL@PROTO.COL"
+                    className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-emerald-400 transition-all placeholder:text-slate-400"
+                    placeholder="you@college.edu"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.3em] ml-1">Access Cipher</label>
+                <label className="text-xs font-semibold text-slate-600">Password</label>
                 <div className="relative group">
-                  <Lock className="w-4 h-4 absolute left-5 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-accent transition-colors" />
+                  <Lock className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <input
                     type="password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full bg-black/40 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm font-medium text-white focus:outline-none focus:border-white/20 focus:bg-black/60 transition-all placeholder:text-white/10"
-                    placeholder="••••••••"
+                    className="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-emerald-400 transition-all placeholder:text-slate-400"
+                    placeholder="Create a strong password"
                   />
                 </div>
+                {!isLogin && (
+                  <div className="flex items-center justify-between text-xs text-slate-500">
+                    <span>Password strength: {strengthLabel}</span>
+                    <div className="flex items-center gap-1">
+                      {[0, 1, 2, 3].map((idx) => (
+                        <span
+                          key={idx}
+                          className={`h-1.5 w-6 rounded-full ${passwordScore > idx ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Button 
                 type="submit" 
                 disabled={isLoading}
-                className="w-full h-14 rounded-2xl shadow-[0_0_20px_rgba(124,140,255,0.2)]"
+                className="w-full h-12 rounded-2xl"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-3">
-                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                    AUTHENTICATING...
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Working...
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4" />
-                    {isLogin ? 'ESTABLISH LINK' : 'PROVISION SYSTEM'}
+                    {isLogin ? 'Sign in' : 'Create account'}
                   </div>
                 )}
               </Button>
             </form>
 
-            <div className="mt-10 pt-8 border-t border-white/5 flex flex-col items-center gap-4">
-              <p className="text-[10px] font-bold text-white/20 uppercase tracking-[0.2em]">
-                {isLogin ? "NEW OPERATIVE DETECTED?" : "RECOGNIZED CLEARANCE?"}
-              </p>
-              <button
-                type="button"
-                onClick={() => setIsLogin(!isLogin)}
-                className="text-xs font-black text-white hover:text-accent uppercase tracking-widest transition-colors flex items-center gap-2"
-              >
-                {isLogin ? <Sparkles className="w-3.5 h-3.5" /> : <Cpu className="w-3.5 h-3.5" />}
-                {isLogin ? 'CREATE NEW IDENTITY' : 'RESTORE ACCESS'}
-              </button>
+            <div className="mt-8 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button className="h-11 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">
+                  Continue with Google
+                </button>
+                <button className="h-11 rounded-2xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-all">
+                  Continue with GitHub
+                </button>
+              </div>
+              <div className="pt-4 border-t border-slate-200 flex flex-col items-center gap-3">
+                <p className="text-xs text-slate-500">
+                  {isLogin ? "New to PrepDost?" : "Already have an account?"}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setIsLogin(!isLogin)}
+                  className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 transition-colors flex items-center gap-2"
+                >
+                  {isLogin ? <Sparkles className="w-3.5 h-3.5" /> : <Cpu className="w-3.5 h-3.5" />}
+                  {isLogin ? 'Create account' : 'Go to sign in'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <p className="mt-8 text-center text-[9px] font-bold text-white/10 uppercase tracking-[0.5em] animate-pulse">
-          Encrypted Neural Bridge Active
-        </p>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }

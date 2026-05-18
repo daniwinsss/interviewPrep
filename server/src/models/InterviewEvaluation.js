@@ -25,6 +25,5 @@ const evaluationSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: false });
 
-evaluationSchema.index({ sessionId: 1 });
 
 export default mongoose.model('InterviewEvaluation', evaluationSchema);

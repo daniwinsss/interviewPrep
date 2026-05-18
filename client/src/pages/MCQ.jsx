@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, Circle, RotateCcw, Trophy, BookOpen, Cpu, Globe, Binary, Search, Shuffle, ChevronRight, ChevronDown, Tag, Monitor, Layers, ShieldCheck, Zap } from 'lucide-react';
+import { ArrowLeft, Trophy, Cpu, Globe, Binary, Search, Shuffle, ChevronRight, Monitor, Layers, ShieldCheck, Zap, AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import renderMathInElement from 'katex/dist/contrib/auto-render';
@@ -19,7 +19,7 @@ const SUBJECTS = [
     label: 'DATA STRUCTURES & ALGORITHMS',
     domain: 'Data Structure and Algorithm',
     icon: Binary,
-    description: 'Master the fundamental logic of computation.',
+    description: 'Strengthen core DSA and problem solving fundamentals.',
     accent: 'emerald'
   },
   {
@@ -27,7 +27,7 @@ const SUBJECTS = [
     label: 'COMPUTER ORGANIZATION',
     domain: 'Computer Organization',
     icon: Cpu,
-    description: 'Deconstruct the architecture of silicon.',
+    description: 'Understand computer architecture and low-level systems.',
     accent: 'purple'
   },
   {
@@ -35,7 +35,7 @@ const SUBJECTS = [
     label: 'COMPUTER NETWORKS',
     domain: 'Computer Network',
     icon: Globe,
-    description: 'Map the global neural infrastructure.',
+    description: 'Build strong networking fundamentals for interviews.',
     accent: 'blue'
   },
   {
@@ -43,7 +43,7 @@ const SUBJECTS = [
     label: 'OPERATING SYSTEMS',
     domain: 'Operating System',
     icon: Monitor,
-    description: 'Interface with the core system kernel.',
+    description: 'Practice OS concepts with interview-focused questions.',
     accent: 'rose'
   },
 ];
@@ -90,27 +90,27 @@ function transformRow(row) {
 // ─── Phase 1: Subject Selection ────────────────────────────────────────────────
 function SubjectSelection({ onSelect }) {
   return (
-    <div className="min-h-screen flex flex-col bg-[#050505]">
-      <header className="h-20 border-b border-white/5 flex items-center px-8 bg-[#0b0b0c] relative z-20 shadow-xl">
-        <Link to="/" className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
+    <div className="min-h-screen flex flex-col bg-slate-50">
+      <header className="h-20 border-b border-slate-200 flex items-center px-8 bg-white relative z-20 shadow-soft">
+        <Link to="/" className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div className="ml-6">
-          <h1 className="font-bold text-white tracking-tight uppercase text-sm">Theory Terminal</h1>
-          <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">Intellectual Core</p>
+          <h1 className="font-bold text-slate-900 tracking-tight uppercase text-sm">PrepDost MCQ Bank</h1>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Core CS prep</p>
         </div>
       </header>
 
       <main className="flex-1 flex flex-col items-center justify-center p-8 relative overflow-hidden">
         {/* Background Depth */}
         <div className="absolute inset-0 z-0 opacity-20">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-accent/10 blur-[180px] rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-emerald-100 blur-[180px] rounded-full" />
         </div>
 
         <div className="max-w-5xl w-full z-10">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-16">
-            <h2 className="text-5xl font-black text-white tracking-tighter mb-4">CHOOSE YOUR SECTOR</h2>
-            <p className="text-sm font-bold text-white/30 uppercase tracking-[0.4em]">Initialize comprehensive theoretical practice</p>
+            <h2 className="text-5xl font-black text-slate-900 tracking-tighter mb-4">Choose your topic</h2>
+            <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.4em]">Practice MCQs by subject area</p>
           </motion.div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -121,22 +121,22 @@ function SubjectSelection({ onSelect }) {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.1 }}
-                className="group surface-strong p-8 rounded-[40px] border-white/5 text-left transition-all hover:border-accent/30 hover:shadow-[0_0_50px_rgba(124,140,255,0.1)] relative overflow-hidden"
+                className="group surface-strong p-8 rounded-[40px] border-slate-200 text-left transition-all hover:border-emerald-200 hover:shadow-soft relative overflow-hidden"
               >
-                <div className="absolute top-0 right-0 p-8 opacity-[0.03] group-hover:opacity-[0.08] transition-all group-hover:scale-110">
+                <div className="absolute top-0 right-0 p-8 opacity-[0.06] group-hover:opacity-[0.12] transition-all group-hover:scale-110">
                   <subject.icon className="w-32 h-32" />
                 </div>
                 
-                <div className="w-14 h-14 rounded-2xl bg-white text-black flex items-center justify-center mb-6 shadow-xl group-hover:scale-110 transition-transform">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-600 text-white flex items-center justify-center mb-6 shadow-soft group-hover:scale-110 transition-transform">
                   <subject.icon className="w-6 h-6" />
                 </div>
                 
-                <h3 className="text-lg font-bold text-white mb-2 tracking-tight group-hover:text-accent transition-colors">{subject.label}</h3>
-                <p className="text-sm text-white/40 leading-relaxed mb-6">{subject.description}</p>
+                <h3 className="text-lg font-bold text-slate-900 mb-2 tracking-tight group-hover:text-emerald-700 transition-colors">{subject.label}</h3>
+                <p className="text-sm text-slate-600 leading-relaxed mb-6">{subject.description}</p>
                 
                 <div className="flex items-center gap-3">
-                  <Badge className="bg-white/5 text-white/40 border-white/10 uppercase tracking-widest text-[9px] font-bold">Comprehensive Browse</Badge>
-                  <Badge className="bg-accent/10 text-accent border-accent/20 uppercase tracking-widest text-[9px] font-bold">10-Q Sprint</Badge>
+                  <Badge className="bg-white text-slate-500 border-slate-200 uppercase tracking-widest text-[9px] font-bold">Full set</Badge>
+                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 uppercase tracking-widest text-[9px] font-bold">10Q sprint</Badge>
                 </div>
               </motion.button>
             ))}
@@ -150,8 +150,6 @@ function SubjectSelection({ onSelect }) {
 // ─── Phase 2: Question List ────────────────────────────────────────────────────
 function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion, onBack }) {
   const [search, setSearch] = useState('');
-  const [groupByTopic, setGroupByTopic] = useState(true);
-
   const filtered = useMemo(() => {
     if (!search.trim()) return allQuestions;
     const q = search.toLowerCase();
@@ -169,32 +167,32 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
   }, [filtered]);
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505]">
-      <header className="h-20 border-b border-white/5 flex items-center px-8 bg-[#0b0b0c] gap-6 z-20 shadow-xl">
-        <button onClick={onBack} className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
+    <div className="h-screen flex flex-col bg-slate-50">
+      <header className="h-20 border-b border-slate-200 flex items-center px-8 bg-white gap-6 z-20 shadow-soft">
+        <button onClick={onBack} className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{subject.label}</span>
-          <span className="text-sm font-bold text-white">{allQuestions.length} DATA POINTS</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{subject.label}</span>
+          <span className="text-sm font-bold text-slate-900">{allQuestions.length} QUESTIONS</span>
         </div>
         
         <div className="flex-1" />
         
         <Button onClick={onStartQuiz} className="h-10 px-6">
           <Shuffle className="w-4 h-4 mr-2" />
-          START RANDOM SPRINT
+          Start random quiz
         </Button>
       </header>
 
-      <div className="px-8 py-6 border-b border-white/5 bg-white/[0.01]">
+      <div className="px-8 py-6 border-b border-slate-200 bg-white">
         <div className="relative max-w-2xl">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="FILTER BY TOPIC OR CONTENT SIGNAL..."
-            className="w-full bg-black/40 border border-white/5 rounded-2xl px-12 py-3 text-xs font-bold text-white/80 focus:outline-none focus:border-white/20 transition-all placeholder:text-white/10 uppercase tracking-widest"
+            placeholder="Search by topic or content..."
+            className="w-full bg-white border border-slate-200 rounded-2xl px-12 py-3 text-xs font-bold text-slate-700 focus:outline-none focus:border-emerald-400 transition-all placeholder:text-slate-400 uppercase tracking-widest"
           />
         </div>
       </div>
@@ -204,9 +202,9 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
           {topicGroups.map(([topic, qs]) => (
             <div key={topic} className="space-y-4">
               <div className="flex items-center gap-4 ml-2">
-                <span className="text-[10px] font-black text-accent uppercase tracking-[0.4em]">{topic}</span>
-                <div className="h-px flex-1 bg-white/5" />
-                <span className="text-[9px] font-bold text-white/20">{qs.length}</span>
+                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-[0.4em]">{topic}</span>
+                <div className="h-px flex-1 bg-slate-200" />
+                <span className="text-[9px] font-bold text-slate-400">{qs.length}</span>
               </div>
               
               <div className="grid grid-cols-1 gap-2">
@@ -214,13 +212,13 @@ function QuestionList({ subject, allQuestions, onStartQuiz, onStartFromQuestion,
                   <button
                     key={q.id}
                     onClick={() => onStartFromQuestion(q)}
-                    className="group surface p-6 rounded-3xl border-white/5 flex items-start gap-6 text-left transition-all hover:bg-white/[0.02] hover:border-white/10"
+                    className="group surface p-6 rounded-3xl border-slate-200 flex items-start gap-6 text-left transition-all hover:bg-emerald-50 hover:border-emerald-200"
                   >
-                    <span className="text-[10px] font-bold text-white/20 mt-1 uppercase">QID</span>
+                    <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase">QID</span>
                     <div className="flex-1">
-                      <p className="text-sm text-white/70 leading-relaxed group-hover:text-white transition-colors">{q.question}</p>
+                      <p className="text-sm text-slate-700 leading-relaxed group-hover:text-slate-900 transition-colors">{q.question}</p>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-white/10 group-hover:text-accent transition-colors" />
+                    <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-emerald-600 transition-colors" />
                   </button>
                 ))}
               </div>
@@ -275,26 +273,26 @@ function Quiz({ subject, questions, onFinish, onBack }) {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-[#050505]">
-      <header className="h-20 border-b border-white/5 flex items-center px-8 bg-[#0b0b0c] gap-6 relative z-30 shadow-xl">
-        <button onClick={onBack} className="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
+    <div className="h-screen flex flex-col bg-slate-50">
+      <header className="h-20 border-b border-slate-200 flex items-center px-8 bg-white gap-6 relative z-30 shadow-soft">
+        <button onClick={onBack} className="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <div className="flex flex-col">
-          <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.2em]">{subject.label}</span>
-          <span className="text-sm font-bold text-white uppercase tracking-widest">SPRINT EVALUATION</span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">{subject.label}</span>
+          <span className="text-sm font-bold text-slate-900 uppercase tracking-widest">Practice quiz</span>
         </div>
         <div className="flex-1" />
-        <div className="h-10 px-4 rounded-xl border border-white/5 bg-white/[0.02] flex items-center justify-center gap-2">
-          <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Signal</span>
-          <span className="text-sm font-bold text-white">{currentIdx + 1} / {questions.length}</span>
+        <div className="h-10 px-4 rounded-xl border border-slate-200 bg-white flex items-center justify-center gap-2">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Question</span>
+          <span className="text-sm font-bold text-slate-900">{currentIdx + 1} / {questions.length}</span>
         </div>
       </header>
 
       {/* Cinematic Progress Bar */}
-      <div className="h-1 bg-white/5 relative z-30">
+      <div className="h-1 bg-slate-200 relative z-30">
         <motion.div
-          className="h-full bg-accent shadow-[0_0_15px_rgba(124,140,255,0.5)]"
+          className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(15,157,88,0.3)]"
           initial={{ width: 0 }}
           animate={{ width: `${progress}%` }}
         />
@@ -303,7 +301,7 @@ function Quiz({ subject, questions, onFinish, onBack }) {
       <main className="flex-1 flex items-center justify-center p-8 relative overflow-hidden">
         {/* Background Visuals */}
         <div className="absolute inset-0 z-0 opacity-10 pointer-events-none">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/20 blur-[150px] rounded-full" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-200/60 blur-[150px] rounded-full" />
         </div>
 
         <AnimatePresence mode="wait">
@@ -314,31 +312,31 @@ function Quiz({ subject, questions, onFinish, onBack }) {
             exit={{ opacity: 0, scale: 0.98, y: -10 }}
             className="max-w-3xl w-full z-10"
           >
-            <div ref={containerRef} className="surface-strong p-12 rounded-[50px] border-white/5 relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 p-12 opacity-[0.03]">
+            <div ref={containerRef} className="surface-strong p-12 rounded-[50px] border-slate-200 relative overflow-hidden shadow-soft">
+              <div className="absolute top-0 right-0 p-12 opacity-[0.06]">
                 <Layers className="w-48 h-48" />
               </div>
               
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-8">
-                  <div className="w-1.5 h-1.5 rounded-full bg-accent shadow-[0_0_10px_rgba(124,140,255,0.5)]" />
-                  <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em]">{question.subDomain || 'CORE LOGIC'}</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(15,157,88,0.3)]" />
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em]">{question.subDomain || 'CORE TOPIC'}</span>
                 </div>
 
-                <h3 className="text-2xl font-bold text-white leading-tight mb-12 tracking-tight">{question.question}</h3>
+                <h3 className="text-2xl font-bold text-slate-900 leading-tight mb-12 tracking-tight">{question.question}</h3>
 
                 <div className="grid grid-cols-1 gap-4">
                   {question.options.map((opt, idx) => {
                     const letter = ['A', 'B', 'C', 'D'][idx];
-                    let style = 'border-white/5 bg-white/[0.02] text-white/60 hover:bg-white/[0.05] hover:border-white/10 hover:text-white';
+                    let style = 'border-slate-200 bg-white text-slate-600 hover:bg-emerald-50 hover:border-emerald-200 hover:text-slate-900';
                     
                     if (isAnswered) {
                       if (idx === question.correct) {
-                        style = 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.1)]';
+                        style = 'border-emerald-200 bg-emerald-50 text-emerald-700 shadow-soft';
                       } else if (idx === selected) {
-                        style = 'border-rose-500/50 bg-rose-500/10 text-rose-400 shadow-[0_0_20px_rgba(244,63,94,0.1)]';
+                        style = 'border-rose-200 bg-rose-50 text-rose-700 shadow-soft';
                       } else {
-                        style = 'border-white/5 bg-white/[0.01] text-white/20 opacity-40';
+                        style = 'border-slate-200 bg-slate-50 text-slate-300 opacity-60';
                       }
                     }
 
@@ -350,9 +348,9 @@ function Quiz({ subject, questions, onFinish, onBack }) {
                         className={`group p-6 rounded-[32px] border flex items-center gap-6 text-left transition-all duration-300 ${style}`}
                       >
                         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center font-bold text-xs transition-all ${
-                          isAnswered && idx === question.correct ? 'bg-emerald-500 text-black shadow-lg' :
+                          isAnswered && idx === question.correct ? 'bg-emerald-600 text-white shadow-soft' :
                           isAnswered && idx === selected ? 'bg-rose-500 text-white' :
-                          'bg-white/5 text-white/40 group-hover:bg-white/10 group-hover:text-white'
+                          'bg-slate-100 text-slate-500 group-hover:bg-emerald-50 group-hover:text-emerald-700'
                         }`}>
                           {letter}
                         </div>
@@ -363,25 +361,25 @@ function Quiz({ subject, questions, onFinish, onBack }) {
                 </div>
 
                 {isAnswered && (
-                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-12 pt-8 border-t border-white/5">
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-12 pt-8 border-t border-slate-200">
                     {question.explanation && (
-                      <div className="bg-white/5 border border-white/5 rounded-3xl p-6 mb-8 relative">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-3xl p-6 mb-8 relative">
                         <div className="flex items-center gap-2 mb-4">
-                          <ShieldCheck className="w-4 h-4 text-accent" />
-                          <span className="text-[10px] font-bold text-white/30 uppercase tracking-widest">Logic Validation</span>
+                          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+                          <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-widest">Explanation</span>
                         </div>
-                        <p className="text-sm text-white/60 leading-relaxed italic">{question.explanation}</p>
+                        <p className="text-sm text-slate-600 leading-relaxed">{question.explanation}</p>
                       </div>
                     )}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${selected === question.correct ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'}`} />
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${selected === question.correct ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {selected === question.correct ? 'Pattern Matches' : 'Anomaly Detected'}
+                        <div className={`w-3 h-3 rounded-full ${selected === question.correct ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.3)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.3)]'}`} />
+                        <span className={`text-[10px] font-bold uppercase tracking-widest ${selected === question.correct ? 'text-emerald-600' : 'text-rose-600'}`}>
+                          {selected === question.correct ? 'Correct' : 'Incorrect'}
                         </span>
                       </div>
                       <Button onClick={handleNext} className="h-14 px-8 rounded-2xl">
-                        {currentIdx < questions.length - 1 ? 'PROCEED TO NEXT SIGNAL' : 'ANALYZE RESULTS'}
+                        {currentIdx < questions.length - 1 ? 'Next question' : 'View results'}
                         <ChevronRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
@@ -399,55 +397,55 @@ function Quiz({ subject, questions, onFinish, onBack }) {
 // ─── Phase 4: Results ──────────────────────────────────────────────────────────
 function Results({ subject, score, total, onRetry, onBrowse, onChangeSubject }) {
   const pct = Math.round((score / total) * 100);
-  const grade = pct >= 80 ? 'OPTIMIZED' : pct >= 60 ? 'STABLE' : pct >= 40 ? 'FRAGMENTED' : 'UNSTABLE';
+  const grade = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : pct >= 40 ? 'Fair' : 'Needs work';
 
   return (
-    <div className="h-screen flex flex-col items-center justify-center p-8 bg-[#050505] relative overflow-hidden">
+    <div className="h-screen flex flex-col items-center justify-center p-8 bg-slate-50 relative overflow-hidden">
       {/* Background Depth */}
-      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.02]">
+      <div className="absolute inset-0 z-0 flex items-center justify-center pointer-events-none opacity-[0.04]">
         <Trophy className="w-[40vw] h-[40vw]" />
       </div>
 
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }} 
         animate={{ opacity: 1, scale: 1 }} 
-        className="max-w-md w-full surface-strong p-12 rounded-[60px] border-white/5 text-center shadow-2xl relative z-10"
+        className="max-w-md w-full surface-strong p-12 rounded-[60px] border-slate-200 text-center shadow-soft relative z-10"
       >
-        <div className="w-20 h-20 rounded-[32px] bg-white text-black flex items-center justify-center mx-auto mb-8 shadow-[0_0_40px_rgba(255,255,255,0.2)]">
+        <div className="w-20 h-20 rounded-[32px] bg-emerald-600 text-white flex items-center justify-center mx-auto mb-8 shadow-soft">
           <Zap className="w-10 h-10" />
         </div>
 
-        <h2 className="text-3xl font-black text-white tracking-tighter mb-2">SYSTEM SCAN COMPLETE</h2>
-        <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em] mb-12">{subject.label}</p>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tighter mb-2">Quiz completed</h2>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.4em] mb-12">{subject.label}</p>
 
         <div className="mb-12">
-          <div className="text-8xl font-black text-white tracking-tighter mb-4">
-            {score}<span className="text-white/10 text-4xl">/{total}</span>
+          <div className="text-8xl font-black text-slate-900 tracking-tighter mb-4">
+            {score}<span className="text-slate-300 text-4xl">/{total}</span>
           </div>
-          <div className="text-xs font-bold text-accent uppercase tracking-[0.5em]">{grade} OUTPUT</div>
-          <div className="text-[9px] font-bold text-white/20 mt-2">EFFICIENCY: {pct}%</div>
+          <div className="text-xs font-bold text-emerald-600 uppercase tracking-[0.3em]">{grade}</div>
+          <div className="text-[9px] font-bold text-slate-400 mt-2">Accuracy: {pct}%</div>
         </div>
 
-        <div className="h-1.5 bg-white/5 rounded-full mb-12 overflow-hidden">
+        <div className="h-1.5 bg-slate-200 rounded-full mb-12 overflow-hidden">
           <motion.div
             initial={{ width: 0 }}
             animate={{ width: `${pct}%` }}
-            className="h-full bg-accent shadow-[0_0_15px_rgba(124,140,255,0.5)]"
+            className="h-full bg-emerald-500 shadow-[0_0_15px_rgba(15,157,88,0.3)]"
           />
         </div>
 
         <div className="grid grid-cols-1 gap-3">
           <Button onClick={onRetry} className="h-14 rounded-2xl">
-            INITIALIZE NEW SPRINT
+            Start another quiz
           </Button>
           <Button variant="secondary" onClick={onBrowse} className="h-14 rounded-2xl">
-            BROWSE DATA CORE
+            Browse all questions
           </Button>
           <Button variant="secondary" onClick={onChangeSubject} className="h-14 rounded-2xl">
-            SWITCH SECTOR
+            Change subject
           </Button>
-          <Link to="/" className="text-[9px] font-bold text-white/20 hover:text-white uppercase tracking-widest mt-6 transition-colors">
-            RETURN TO COMMAND CENTER
+          <Link to="/" className="text-[9px] font-bold text-slate-400 hover:text-slate-900 uppercase tracking-widest mt-6 transition-colors">
+            Return to PrepDost
           </Link>
         </div>
       </motion.div>
@@ -474,7 +472,7 @@ export default function MCQ() {
       if (!response.ok) throw new Error(`Handshake failed: ${response.status}`);
       const data = await response.json();
       const all = (data.rows || []).map(transformRow);
-      if (all.length < 3) throw new Error(`Insufficient data for sector "${selectedSubject.label}".`);
+      if (all.length < 3) throw new Error(`Not enough questions for "${selectedSubject.label}".`);
       setAllQuestions(all);
       setPhase('list');
     } catch (e) {
@@ -504,14 +502,14 @@ export default function MCQ() {
 
   if (phase === 'loading') {
     return (
-      <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center gap-8">
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center gap-8">
         <div className="relative">
-          <div className="w-16 h-16 border-4 border-accent/20 border-t-accent rounded-full animate-spin" />
-          <div className="absolute inset-0 bg-accent/20 blur-xl rounded-full animate-pulse" />
+          <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-500 rounded-full animate-spin" />
+          <div className="absolute inset-0 bg-emerald-100 blur-xl rounded-full animate-pulse" />
         </div>
         <div className="text-center">
-          <p className="text-[10px] font-bold text-accent uppercase tracking-[0.4em] mb-2 animate-pulse">Synchronizing Neural Link</p>
-          <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest">Retrieving data vectors from sector core</p>
+          <p className="text-[10px] font-bold text-emerald-600 uppercase tracking-[0.4em] mb-2 animate-pulse">Loading questions</p>
+          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Fetching practice set</p>
         </div>
       </div>
     );
@@ -521,7 +519,7 @@ export default function MCQ() {
     <>
       <AnimatePresence>
         {error && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-rose-500/10 border border-rose-500/20 text-rose-400 text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-2xl shadow-2xl backdrop-blur-xl flex items-center gap-3">
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="fixed top-8 left-1/2 -translate-x-1/2 z-50 bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold uppercase tracking-widest px-6 py-3 rounded-2xl shadow-soft backdrop-blur-xl flex items-center gap-3">
             <AlertTriangle className="w-4 h-4" />
             {error}
           </motion.div>

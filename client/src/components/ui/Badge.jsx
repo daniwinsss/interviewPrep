@@ -2,10 +2,10 @@ import React from 'react';
 import classNames from 'classnames';
 
 const variants = {
-  neutral: 'bg-white/[0.03] text-white/40 border-white/[0.05]',
-  strong: 'bg-white text-black border-white shadow-lg',
-  accent: 'bg-accent/10 text-accent border-accent/20',
-  outline: 'bg-transparent text-white/50 border-white/10 hover:text-white hover:border-white/20',
+  neutral: 'bg-white text-slate-500 border-slate-200',
+  strong: 'bg-slate-900 text-white border-slate-900 shadow-lg',
+  accent: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  outline: 'bg-transparent text-slate-500 border-slate-200 hover:text-slate-900 hover:border-slate-300',
 };
 
 export default function Badge({ children, className = '', variant = 'neutral', ...props }) {

@@ -5,7 +5,7 @@ const variants = {
   primary: 'btn-primary',
   secondary: 'btn-secondary',
   ghost: 'btn-ghost',
-  outline: 'bg-transparent text-white border border-white/10 hover:border-accent/50 hover:text-accent hover:bg-accent/5',
+  outline: 'bg-transparent text-slate-700 border border-slate-200 hover:border-emerald-300 hover:text-emerald-700 hover:bg-emerald-50',
 };
 
 const sizes = {

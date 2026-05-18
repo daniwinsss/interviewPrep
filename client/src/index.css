@@ -1,19 +1,19 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 @layer base {
   :root {
-    --bg: 0 0% 3%;
-    --fg: 0 0% 100%;
-    --muted: 0 0% 82%;
-    --muted-2: 0 0% 64%;
-    --border: 0 0% 16%;
-    --surface: 240 6% 8%;
-    --surface-2: 240 5% 11%;
-    --surface-3: 240 4% 14%;
-    --accent: 220 100% 76%;
-    --accent-strong: 230 90% 70%;
-    --shadow: 0 0% 0%;
+    --bg: 210 40% 98%;
+    --fg: 222 47% 11%;
+    --muted: 215 18% 45%;
+    --muted-2: 215 16% 55%;
+    --border: 214 20% 90%;
+    --surface: 0 0% 100%;
+    --surface-2: 210 40% 96%;
+    --surface-3: 210 24% 93%;
+    --accent: 145 61% 36%;
+    --accent-strong: 145 66% 32%;
+    --shadow: 220 43% 11%;
   }
 
   @theme {
@@ -34,29 +34,29 @@
   }
 
   body {
-    @apply text-white antialiased selection:bg-[#7c8cff]/30 selection:text-white;
-    background-color: #050505;
+    @apply text-slate-900 antialiased selection:bg-emerald-200 selection:text-emerald-900;
+    background-color: #f8fafc;
     background-image:
-      radial-gradient(circle at top right, rgba(120, 150, 255, 0.12), transparent 40%),
-      radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.05), transparent 35%),
-      linear-gradient(180deg, #050505 0%, #0b0b0c 35%, #111111 100%);
-    font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+      radial-gradient(circle at top right, rgba(15, 157, 88, 0.08), transparent 45%),
+      radial-gradient(circle at 20% 10%, rgba(15, 157, 88, 0.06), transparent 40%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%);
+    font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     min-height: 100vh;
     position: relative;
   }
 
   body::before {
-    content: "ANTIGRAVITY";
+    content: "PREPDOST";
     position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%) rotate(-12deg);
     font-size: 24vw;
     font-weight: 900;
-    color: rgba(255, 255, 255, 0.02);
+    color: rgba(15, 23, 42, 0.04);
     z-index: -1;
     pointer-events: none;
-    filter: blur(12px);
+    filter: blur(10px);
     letter-spacing: -0.05em;
     white-space: nowrap;
     text-transform: uppercase;
@@ -70,126 +70,126 @@
 
 @layer components {
   .app-shell {
-    @apply min-h-screen text-white;
-    background-color: #050505;
+    @apply min-h-screen text-slate-900;
+    background-color: #f8fafc;
     background-image:
-      radial-gradient(circle at 18% 10%, rgba(255, 255, 255, 0.08), transparent 40%),
-      radial-gradient(circle at 80% 0%, rgba(120, 150, 255, 0.14), transparent 35%),
-      linear-gradient(180deg, #050505 0%, #0f0f10 40%, #151515 100%);
+      radial-gradient(circle at 18% 10%, rgba(15, 157, 88, 0.08), transparent 40%),
+      radial-gradient(circle at 80% 0%, rgba(15, 157, 88, 0.06), transparent 35%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%);
   }
 
   .page {
-    @apply min-h-screen text-white;
-    background-color: #050505;
+    @apply min-h-screen text-slate-900;
+    background-color: #f8fafc;
     background-image:
-      radial-gradient(circle at 10% 15%, rgba(255, 255, 255, 0.06), transparent 40%),
-      radial-gradient(circle at 90% 10%, rgba(132, 146, 255, 0.12), transparent 35%),
-      linear-gradient(180deg, #050505 0%, #0f0f10 40%, #151515 100%);
+      radial-gradient(circle at 10% 15%, rgba(15, 157, 88, 0.05), transparent 40%),
+      radial-gradient(circle at 90% 10%, rgba(15, 157, 88, 0.07), transparent 35%),
+      linear-gradient(180deg, #f8fafc 0%, #f1f5f9 40%, #eef2f7 100%);
   }
 
   .surface {
-    @apply border rounded-2xl shadow-[0_24px_60px_-40px_rgba(0,0,0,0.8)];
-    background: linear-gradient(140deg, rgba(21, 21, 21, 0.95), rgba(12, 12, 13, 0.9));
-    border-color: rgba(255, 255, 255, 0.08);
+    @apply border rounded-2xl shadow-[0_24px_60px_-40px_rgba(15,23,42,0.25)];
+    background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.98));
+    border-color: rgba(226, 232, 240, 0.9);
   }
 
   .surface-strong {
-    @apply border rounded-2xl shadow-[0_30px_80px_-45px_rgba(0,0,0,0.85)];
-    background: linear-gradient(160deg, rgba(28, 28, 31, 0.98), rgba(15, 15, 16, 0.92));
-    border-color: rgba(255, 255, 255, 0.1);
+    @apply border rounded-2xl shadow-[0_30px_80px_-45px_rgba(15,23,42,0.3)];
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.95));
+    border-color: rgba(226, 232, 240, 0.95);
   }
 
   .glass {
     @apply backdrop-blur-2xl border rounded-2xl;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.02));
-    border-color: rgba(255, 255, 255, 0.12);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.85), rgba(241, 245, 249, 0.8));
+    border-color: rgba(226, 232, 240, 0.95);
   }
 
   .btn-primary {
     @apply text-white font-semibold rounded-2xl px-5 py-2.5 transition-all active:scale-[0.98];
-    background: linear-gradient(120deg, rgba(120, 150, 255, 0.85), rgba(160, 180, 255, 0.65));
-    box-shadow: 0 18px 40px -20px rgba(120, 150, 255, 0.6);
+    background: linear-gradient(120deg, rgba(15, 157, 88, 0.95), rgba(10, 120, 67, 0.9));
+    box-shadow: 0 18px 40px -20px rgba(15, 157, 88, 0.45);
   }
 
   .btn-secondary {
-    @apply text-white border rounded-2xl px-5 py-2.5 font-semibold transition-all;
-    background: linear-gradient(145deg, rgba(35, 35, 38, 0.9), rgba(18, 18, 20, 0.85));
-    border-color: rgba(255, 255, 255, 0.12);
+    @apply text-slate-700 border rounded-2xl px-5 py-2.5 font-semibold transition-all;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(241, 245, 249, 0.95));
+    border-color: rgba(226, 232, 240, 1);
   }
 
   .btn-ghost {
-    @apply text-white/70 hover:text-white transition-colors;
+    @apply text-slate-500 hover:text-slate-900 transition-colors;
   }
 
   .chip {
-    @apply inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] rounded-full border border-white/15 text-white/70;
+    @apply inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] rounded-full border border-slate-200 text-slate-500 bg-white/80;
   }
 
   .nav-link {
-    @apply text-sm font-medium text-white/70 hover:text-white transition-colors;
+    @apply text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors;
   }
 
   .input {
-    @apply w-full rounded-2xl px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none transition-all;
-    background: rgba(20, 20, 22, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    @apply w-full rounded-2xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-all;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid rgba(226, 232, 240, 1);
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.08);
   }
 
   .input:focus {
-    border-color: rgba(140, 160, 255, 0.5);
-    box-shadow: 0 0 0 3px rgba(120, 150, 255, 0.12);
+    border-color: rgba(15, 157, 88, 0.6);
+    box-shadow: 0 0 0 3px rgba(15, 157, 88, 0.12);
   }
 
   .section-title {
-    @apply text-3xl md:text-4xl font-semibold tracking-tight;
+    @apply text-3xl md:text-4xl font-semibold tracking-tight text-slate-900;
   }
 
   .section-subtitle {
-    @apply text-white/70 text-base md:text-lg leading-relaxed;
+    @apply text-slate-600 text-base md:text-lg leading-relaxed;
   }
 
   .text-muted {
-    @apply text-white/65;
+    @apply text-slate-500;
   }
 
   .ringed {
-    @apply ring-1 ring-white/10;
+    @apply ring-1 ring-slate-200;
   }
 }
 
 @layer utilities {
   .bg-grid {
-    background-image: linear-gradient(transparent 0, rgba(255, 255, 255, 0.05) 1px),
-      linear-gradient(90deg, transparent 0, rgba(255, 255, 255, 0.05) 1px);
+    background-image: linear-gradient(transparent 0, rgba(15, 157, 88, 0.08) 1px),
+      linear-gradient(90deg, transparent 0, rgba(15, 157, 88, 0.08) 1px);
     background-size: 32px 32px;
   }
 
   .bg-radial {
-    background: radial-gradient(circle at top left, rgba(255, 255, 255, 0.08), transparent 60%);
+    background: radial-gradient(circle at top left, rgba(15, 157, 88, 0.12), transparent 60%);
   }
 
   .text-gradient {
-    background: linear-gradient(120deg, #ffffff 0%, #e5e7eb 45%, #a1a1aa 100%);
+    background: linear-gradient(120deg, #0f172a 0%, #0f9d58 45%, #047857 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
   }
 
   .shadow-soft {
-    box-shadow: 0 24px 60px -35px rgba(0, 0, 0, 0.75);
+    box-shadow: 0 24px 60px -35px rgba(15, 23, 42, 0.2);
   }
 
   .shadow-float {
-    box-shadow: 0 40px 120px -60px rgba(0, 0, 0, 0.9);
+    box-shadow: 0 40px 120px -60px rgba(15, 23, 42, 0.25);
   }
 
   .glow-blue {
-    box-shadow: 0 0 40px -16px rgba(120, 150, 255, 0.55);
+    box-shadow: 0 0 40px -16px rgba(15, 157, 88, 0.35);
   }
 
   .glow-purple {
-    box-shadow: 0 0 40px -16px rgba(160, 140, 255, 0.45);
+    box-shadow: 0 0 40px -16px rgba(6, 95, 70, 0.3);
   }
 
   .float-slow {
@@ -211,11 +211,11 @@
     background: transparent;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(15, 23, 42, 0.15);
     border-radius: 10px;
   }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(15, 23, 42, 0.25);
   }
 }
 
