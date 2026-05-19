@@ -1,7 +1,12 @@
 import express from 'express';
+import multer from 'multer';
 import { interviewService } from '../services/interviewService.js';
 
 const router = express.Router();
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 }
+});
 
 function mapTopicToRoundType(topic = '') {
   const normalized = String(topic).trim().toLowerCase();
@@ -9,6 +14,7 @@ function mapTopicToRoundType(topic = '') {
   if (normalized === 'behavioral' || normalized === 'behavioural') return 'behavioural';
   if (normalized === 'system design') return 'system_design';
   if (normalized === 'project experience' || normalized === 'project') return 'project';
+  if (normalized === 'resume session' || normalized === 'resume') return 'project';
   if (normalized === 'core cs') return 'core_cs';
   return normalized || 'dsa';
 }
@@ -61,7 +67,8 @@ router.post('/start', async (req, res) => {
       difficulty = 'medium',
       durationMin = 45,
       company = 'generic',
-      repoUrl = ''
+      repoUrl = '',
+      resumeContext = null
     } = req.body;
 
     const { session, message } = await interviewService.startSession({
@@ -71,10 +78,32 @@ router.post('/start', async (req, res) => {
       difficulty,
       durationMin,
       company,
-      repoUrl
+      repoUrl,
+      resumeContext
     });
 
     res.json(formatSessionResponse(session, [message]));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/resume-analyze', upload.single('resume'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Resume file is required' });
+    }
+
+    const result = await interviewService.analyzeResume({
+      fileBuffer: req.file.buffer,
+      mimeType: req.file.mimetype,
+      fileName: req.file.originalname
+    });
+
+    res.json({
+      success: true,
+      resumeContext: result
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

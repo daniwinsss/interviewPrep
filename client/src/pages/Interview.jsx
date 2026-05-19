@@ -31,7 +31,7 @@ import Button from '../components/ui/Button';
 
 const API = apiUrl('/api/ai/interview');
 
-const TOPICS = ['DSA', 'Behavioral', 'System Design', 'Project Experience', 'Core CS'];
+const TOPICS = ['DSA', 'Behavioral', 'System Design', 'Project Experience', 'Resume Session', 'Core CS'];
 
 const LANG_MAP = {
   cpp: { label: 'C++', monaco: 'cpp' },
@@ -91,6 +91,7 @@ function formatTime(seconds) {
 
 function useSpeechRecognition({ enabled, onTranscript }) {
   const recognitionRef = useRef(null);
+  const shouldRunRef = useRef(false);
   const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
 
@@ -112,24 +113,30 @@ function useSpeechRecognition({ enabled, onTranscript }) {
       onTranscript(transcript, event.results[event.results.length - 1]?.isFinal);
     };
     recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onend = () => {
+      setListening(false);
+      if (!shouldRunRef.current || !enabled) return;
+      try {
+        recognition.start();
+        setListening(true);
+      } catch {
+        setListening(false);
+      }
+    };
     recognitionRef.current = recognition;
     setSupported(true);
     return () => {
       recognition.onresult = null;
       recognition.onerror = null;
       recognition.onend = null;
+      shouldRunRef.current = false;
       try { recognition.stop(); } catch {}
     };
   }, [onTranscript]);
 
-  const toggle = useCallback(() => {
-    if (!enabled || !recognitionRef.current) return;
-    if (listening) {
-      recognitionRef.current.stop();
-      setListening(false);
-      return;
-    }
+  const start = useCallback(() => {
+    if (!enabled || !recognitionRef.current || listening) return;
+    shouldRunRef.current = true;
     try {
       recognitionRef.current.start();
       setListening(true);
@@ -138,7 +145,31 @@ function useSpeechRecognition({ enabled, onTranscript }) {
     }
   }, [enabled, listening]);
 
-  return { supported, listening, toggle };
+  const stop = useCallback(() => {
+    if (!recognitionRef.current || !listening) return;
+    shouldRunRef.current = false;
+    recognitionRef.current.stop();
+    setListening(false);
+  }, [listening]);
+
+  const toggle = useCallback(() => {
+    if (listening) {
+      stop();
+      return;
+    }
+    start();
+  }, [listening, start, stop]);
+
+  useEffect(() => {
+    if (enabled) return;
+    shouldRunRef.current = false;
+    try {
+      recognitionRef.current?.stop();
+    } catch {}
+    setListening(false);
+  }, [enabled]);
+
+  return { supported, listening, toggle, start, stop };
 }
 
 function Whiteboard({ strokes, setStrokes }) {
@@ -297,6 +328,9 @@ export default function Interview() {
   const [view, setView] = useState('lobby');
   const [topic, setTopic] = useState('DSA');
   const [repoUrl, setRepoUrl] = useState('');
+  const [resumeFileName, setResumeFileName] = useState('');
+  const [resumeContext, setResumeContext] = useState(null);
+  const [isAnalyzingResume, setIsAnalyzingResume] = useState(false);
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
@@ -345,9 +379,21 @@ export default function Interview() {
   const roomIdRef = useRef(null);
   const voiceInitializedRef = useRef(false);
   const lastSpokenAiMessageRef = useRef('');
+  const speechUnlockedRef = useRef(false);
+  const speechQueueRef = useRef([]);
+  const isSpeakingRef = useRef(false);
 
   const isDsa = topic === 'DSA';
-  const isProject = topic === 'Project Experience';
+  const isProjectExperience = topic === 'Project Experience';
+  const isResumeSession = topic === 'Resume Session';
+  const isProjectTrack = isProjectExperience || isResumeSession;
+
+  useEffect(() => {
+    if (isResumeSession) return;
+    setResumeContext(null);
+    setResumeFileName('');
+    setIsAnalyzingResume(false);
+  }, [isResumeSession]);
 
   const handleTranscript = useCallback((text, isFinal) => {
     setLiveTranscript(text);
@@ -387,23 +433,104 @@ export default function Interview() {
     }
   }, [speakerEnabled]);
 
+  const splitSpeechChunks = useCallback((value) => {
+    const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return [];
+    const maxLen = 220;
+    const chunks = [];
+    let remaining = normalized;
+    while (remaining.length > maxLen) {
+      const slice = remaining.slice(0, maxLen + 1);
+      const breakAt = Math.max(slice.lastIndexOf('. '), slice.lastIndexOf('? '), slice.lastIndexOf('! '), slice.lastIndexOf(', '), slice.lastIndexOf(' '));
+      const cut = breakAt > 40 ? breakAt + 1 : maxLen;
+      chunks.push(remaining.slice(0, cut).trim());
+      remaining = remaining.slice(cut).trim();
+    }
+    if (remaining) chunks.push(remaining);
+    return chunks;
+  }, []);
+
+  const speakText = useCallback((value) => {
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return false;
+    const chunks = splitSpeechChunks(value);
+    if (!chunks.length) return false;
+
+    const voices = window.speechSynthesis.getVoices?.() || [];
+    const preferred = voices.find((voice) => /en(-|_)?(IN|US|GB)/i.test(voice.lang || '')) || voices[0];
+    const queue = [...chunks];
+    speechQueueRef.current = queue;
+    isSpeakingRef.current = true;
+
+    const speakNext = () => {
+      if (!speechQueueRef.current.length) {
+        isSpeakingRef.current = false;
+        return;
+      }
+      const chunk = speechQueueRef.current.shift();
+      const utterance = new window.SpeechSynthesisUtterance(chunk);
+      if (preferred) utterance.voice = preferred;
+      utterance.lang = preferred?.lang || 'en-US';
+      utterance.rate = 0.98;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      utterance.onstart = () => {
+        setVoiceError('');
+        setVoiceStatus('connected');
+      };
+      utterance.onend = () => {
+        speakNext();
+      };
+      utterance.onerror = (event) => {
+        const errorType = String(event?.error || '').toLowerCase();
+        if (errorType === 'interrupted' || errorType === 'canceled' || errorType === 'cancelled') {
+          isSpeakingRef.current = false;
+          return;
+        }
+        setVoiceError('AI voice playback failed in this browser.');
+        isSpeakingRef.current = false;
+      };
+
+      window.speechSynthesis.resume?.();
+      window.speechSynthesis.speak(utterance);
+    };
+
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+      window.speechSynthesis.cancel();
+    }
+    speakNext();
+    return true;
+  }, [splitSpeechChunks]);
+
   useEffect(() => {
-    if (!aiVoiceEnabled) {
+    if (!aiVoiceEnabled || !speakerEnabled) {
+      speechQueueRef.current = [];
+      isSpeakingRef.current = false;
       window.speechSynthesis?.cancel();
       return;
     }
     const latestAiMessage = [...messages].reverse().find((msg) => msg.role === 'ai');
     const text = latestAiMessage?.content?.trim();
     if (!text || text === lastSpokenAiMessageRef.current) return;
-    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new window.SpeechSynthesisUtterance(text);
-    utterance.rate = 0.98;
-    utterance.pitch = 1;
-    window.speechSynthesis.speak(utterance);
+    const played = speakText(text);
+    if (!played) {
+      setVoiceError('AI voice playback failed in this browser.');
+      return;
+    }
     lastSpokenAiMessageRef.current = text;
-  }, [messages, aiVoiceEnabled]);
+    return undefined;
+  }, [messages, aiVoiceEnabled, speakerEnabled, speakText]);
+
+  useEffect(() => {
+    const synth = window.speechSynthesis;
+    if (!synth) return undefined;
+    const handleVoicesChanged = () => {
+      // noop listener to ensure browser hydrates voice list before first speak
+      synth.getVoices();
+    };
+    synth.getVoices();
+    synth.addEventListener?.('voiceschanged', handleVoicesChanged);
+    return () => synth.removeEventListener?.('voiceschanged', handleVoicesChanged);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -444,8 +571,15 @@ export default function Interview() {
     setLanguage('cpp');
     setTimerSeconds(0);
     setReport(null);
+    setVoiceError('');
     lastReviewedCodeRef.current = '';
     lastSpokenAiMessageRef.current = '';
+
+    if (isResumeSession && !resumeContext) {
+      setError('Please upload your resume first for Resume Session interviews.');
+      setIsStarting(false);
+      return;
+    }
 
     try {
       const res = await fetch(`${API}/start`, {
@@ -455,7 +589,8 @@ export default function Interview() {
           userId: localStorage.getItem('token') || 'anonymous',
           userName: localStorage.getItem('userName') || 'Candidate',
           topic,
-          repoUrl: isProject ? repoUrl.trim() : ''
+          repoUrl: isProjectTrack ? repoUrl.trim() : '',
+          resumeContext: isResumeSession ? resumeContext : null
         })
       });
       const data = await readApiResponse(res);
@@ -473,7 +608,55 @@ export default function Interview() {
     } finally {
       setIsStarting(false);
     }
-  }, [topic, repoUrl, isProject, syncInterviewState]);
+  }, [topic, repoUrl, isResumeSession, isProjectTrack, syncInterviewState, resumeContext]);
+
+  const unlockAiVoice = useCallback(() => {
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return;
+    if (speechUnlockedRef.current) return;
+    try {
+      const unlockUtterance = new window.SpeechSynthesisUtterance(' ');
+      unlockUtterance.volume = 0;
+      unlockUtterance.rate = 1;
+      unlockUtterance.pitch = 1;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.resume?.();
+      window.speechSynthesis.speak(unlockUtterance);
+      speechUnlockedRef.current = true;
+    } catch {}
+  }, []);
+
+  const handleStartInterview = useCallback(() => {
+    unlockAiVoice();
+    startInterview();
+  }, [unlockAiVoice, startInterview]);
+
+  const handleResumeUpload = useCallback(async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setIsAnalyzingResume(true);
+    setResumeContext(null);
+    setResumeFileName(file.name || '');
+
+    try {
+      const formData = new FormData();
+      formData.append('resume', file);
+      const res = await fetch(`${API}/resume-analyze`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await readApiResponse(res);
+      if (!res.ok) throw new Error(data.error || 'Failed to analyze resume');
+      setResumeContext(data.resumeContext || null);
+    } catch (err) {
+      setResumeFileName('');
+      setResumeContext(null);
+      setError(err.message || 'Failed to analyze resume');
+    } finally {
+      setIsAnalyzingResume(false);
+      event.target.value = '';
+    }
+  }, []);
 
   const buildPeer = useCallback((initiator, stream) => {
     if (peerRef.current) {
@@ -602,7 +785,7 @@ export default function Interview() {
         track.enabled = !pushToTalkEnabled;
       });
       setLocalStream(stream);
-      setVoiceStatus('connecting');
+      setVoiceStatus('connected');
 
       const socket = connectSocket();
       socket.emit('join-room', {
@@ -622,6 +805,15 @@ export default function Interview() {
       setVoiceStatus('failed');
     }
   }, [connectSocket, buildPeer, pushToTalkEnabled, remoteUserId, role, voiceStatus]);
+
+  useEffect(() => {
+    if (view !== 'live' || topic !== 'Project Experience') return;
+    if (!speech.supported || speech.listening || isComplete) return;
+    speech.start();
+    return () => {
+      speech.stop();
+    };
+  }, [view, topic, speech.supported, speech.listening, speech.start, speech.stop, isComplete]);
 
   const hydrateSession = useCallback(async (sessionId) => {
     if (!sessionId) return;
@@ -679,6 +871,15 @@ export default function Interview() {
   }, [teardownVoice, cameraStream]);
 
   useEffect(() => {
+    if (view !== 'live') return undefined;
+    const handleBack = () => {
+      exitInterview();
+    };
+    window.addEventListener('popstate', handleBack);
+    return () => window.removeEventListener('popstate', handleBack);
+  }, [view, exitInterview]);
+
+  useEffect(() => {
     if (view !== 'live') {
       if (voiceInitializedRef.current) {
         teardownVoice();
@@ -703,11 +904,10 @@ export default function Interview() {
 
   useEffect(() => {
     const storedSession = localStorage.getItem('prepdost_session_id');
-    if (storedSession && view === 'lobby') {
-      roomIdRef.current = storedSession;
-      hydrateSession(storedSession);
-    }
-  }, [hydrateSession, view]);
+    if (!storedSession || view !== 'lobby') return;
+    // Keep manual resume available, but do not auto-jump into a previous session on refresh.
+    roomIdRef.current = storedSession;
+  }, [view]);
 
   useEffect(() => {
     if (!remoteUserId || !localStream) return;
@@ -870,7 +1070,13 @@ export default function Interview() {
   return (
     <div className="h-screen flex flex-col bg-slate-50 text-slate-900 overflow-hidden selection:bg-emerald-200">
       <header className="h-20 border-b border-slate-200 bg-white flex items-center px-6 lg:px-8 gap-6 shadow-soft relative z-30">
-        <Link to="/" className="w-12 h-12 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all">
+        <Link
+          to="/"
+          onClick={() => {
+            if (view === 'live') exitInterview();
+          }}
+          className="w-12 h-12 rounded-2xl border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-900 hover:bg-slate-50 transition-all"
+        >
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <div className="flex items-center gap-4">
@@ -924,22 +1130,24 @@ export default function Interview() {
                         ))}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Preferred language</label>
-                      <select
-                        value={language}
-                        onChange={(e) => {
-                          const nextLanguage = e.target.value;
-                          setLanguage(nextLanguage);
-                          setCode(STARTER_CODE[nextLanguage] || '');
-                        }}
-                        className="mt-2 w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-400"
-                      >
-                        {Object.entries(LANG_MAP).map(([key, value]) => (
-                          <option key={key} value={key} className="bg-white">{value.label}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {isDsa && (
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Preferred language</label>
+                        <select
+                          value={language}
+                          onChange={(e) => {
+                            const nextLanguage = e.target.value;
+                            setLanguage(nextLanguage);
+                            setCode(STARTER_CODE[nextLanguage] || '');
+                          }}
+                          className="mt-2 w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-400"
+                        >
+                          {Object.entries(LANG_MAP).map(([key, value]) => (
+                            <option key={key} value={key} className="bg-white">{value.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
                     <div className="mt-6 grid md:grid-cols-1 gap-6">
@@ -959,17 +1167,50 @@ export default function Interview() {
                     </div>
                   </div>
 
-                  {isProject && (
-                    <div className="mt-6">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Project repository</label>
-                      <div className="mt-2 flex flex-col md:flex-row gap-4">
-                        <input
-                          type="url"
-                          value={repoUrl}
-                          onChange={(e) => setRepoUrl(e.target.value)}
-                          placeholder="https://github.com/org/project"
-                          className="flex-1 bg-white border border-slate-200 rounded-2xl px-6 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-emerald-400"
-                        />
+                  {isProjectExperience && (
+                    <div className="mt-6 space-y-4">
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Project Setup</p>
+                        <label className="mt-3 block text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Project repository</label>
+                        <div className="mt-2 flex flex-col md:flex-row gap-4">
+                          <input
+                            type="url"
+                            value={repoUrl}
+                            onChange={(e) => setRepoUrl(e.target.value)}
+                            placeholder="https://github.com/org/project"
+                            className="flex-1 bg-white border border-slate-200 rounded-2xl px-6 py-3 text-sm font-medium text-slate-900 focus:outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {isResumeSession && (
+                    <div className="mt-6 space-y-4">
+                      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Resume Session</p>
+                        <p className="mt-2 text-xs text-slate-500">Upload resume first, AI will scan it, then interview questions are generated from your profile.</p>
+                        <label className="mt-3 block text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Upload resume (required)</label>
+                        <div className="mt-2 flex items-center gap-3">
+                          <label className="h-11 px-5 rounded-2xl border border-slate-200 bg-white text-slate-700 text-xs font-bold uppercase tracking-widest flex items-center cursor-pointer hover:bg-slate-50">
+                            {isAnalyzingResume ? 'Analyzing...' : 'Upload resume'}
+                            <input
+                              type="file"
+                              accept=".pdf,.txt,.md,.doc,.docx"
+                              className="hidden"
+                              onChange={handleResumeUpload}
+                              disabled={isAnalyzingResume}
+                            />
+                          </label>
+                          <span className="text-xs text-slate-500">
+                            {resumeContext ? `Analyzed: ${resumeFileName || 'Resume uploaded'}` : 'No resume uploaded'}
+                          </span>
+                        </div>
+                        {resumeContext?.candidateSummary && (
+                          <p className="mt-3 text-xs text-slate-600 leading-relaxed">
+                            {resumeContext.candidateSummary}
+                          </p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -999,8 +1240,8 @@ export default function Interview() {
                     <Button
                       size="lg"
                       className="h-14 px-8"
-                      onClick={startInterview}
-                      disabled={isStarting || !recordingConsent}
+                      onClick={handleStartInterview}
+                      disabled={isStarting || !recordingConsent || (isResumeSession && (!resumeContext || isAnalyzingResume))}
                     >
                       {isStarting ? 'Starting...' : 'Start interview'}
                     </Button>
@@ -1010,7 +1251,7 @@ export default function Interview() {
                         className="h-14 px-6"
                         onClick={() => hydrateSession(roomIdRef.current)}
                       >
-                        Resume session
+                        Continue previous session
                       </Button>
                     )}
                     <span className="text-xs text-slate-500">

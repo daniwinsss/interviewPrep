@@ -686,6 +686,38 @@ function buildStudyPlan(roundType, weaknesses) {
 }
 
 async function chooseQuestion(config) {
+  if (config.roundType === 'project' && config.resumeContext) {
+    const resume = config.resumeContext;
+    const topProject = Array.isArray(resume.projects) && resume.projects.length > 0 ? resume.projects[0] : null;
+    const focusAreas = Array.isArray(resume.questionFocusAreas) ? resume.questionFocusAreas.filter(Boolean) : [];
+    const skills = Array.isArray(resume.skills) ? resume.skills.filter(Boolean) : [];
+    const highlights = Array.isArray(resume.experienceHighlights) ? resume.experienceHighlights.filter(Boolean) : [];
+
+    const title = topProject?.name || 'Resume-Based Project Deep Dive';
+    const summary = normalizeText(resume.candidateSummary || '');
+    const projectDesc = normalizeText(topProject?.description || '');
+    const projectImpact = normalizeText(topProject?.impact || '');
+    const projectTech = Array.isArray(topProject?.tech) ? topProject.tech.filter(Boolean) : [];
+
+    return {
+      questionId: null,
+      snapshot: {
+        title,
+        content: `Let's do a deep dive based on your resume. Start with "${title}" and explain your ownership, architecture decisions, tradeoffs, and measurable outcomes.${focusAreas.length ? `\nFocus areas: ${focusAreas.join(', ')}` : ''}`,
+        constraints: [
+          summary ? `Candidate summary: ${summary}` : '',
+          projectDesc ? `Project summary: ${projectDesc}` : '',
+          projectImpact ? `Reported impact: ${projectImpact}` : '',
+          projectTech.length ? `Technologies: ${projectTech.join(', ')}` : '',
+          skills.length ? `Skills from resume: ${skills.join(', ')}` : ''
+        ].filter(Boolean).join('\n'),
+        examples: highlights.join('\n'),
+        phases: ROUND_PHASES.project,
+        tags: dedupeStrings(['resume-based', ...focusAreas, ...skills.slice(0, 5)])
+      }
+    };
+  }
+
   if (config.roundType === 'project' && config.repoContext) {
     return {
       questionId: null,
@@ -825,8 +857,54 @@ async function fetchGithubRepoContext(repoUrl) {
   };
 }
 
+async function analyzeResumeWithAi(fileBuffer, mimeType) {
+  if (!ai) {
+    throw new Error('AI resume analysis is not configured on the server');
+  }
+
+  const prompt = `You are parsing a candidate resume for interview personalization.
+Return ONLY valid JSON with this exact schema:
+{
+  "candidateSummary": "2-4 sentence summary of profile",
+  "skills": ["skill1", "skill2"],
+  "projects": [
+    {
+      "name": "project name",
+      "description": "short description",
+      "tech": ["tech1", "tech2"],
+      "impact": "measurable impact or outcome if present"
+    }
+  ],
+  "experienceHighlights": ["highlight1", "highlight2"],
+  "questionFocusAreas": ["focus area 1", "focus area 2"]
+}
+If some fields are missing in resume, return best-effort values and keep arrays possibly empty.`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [
+      { text: prompt },
+      { inlineData: { mimeType, data: fileBuffer.toString('base64') } }
+    ]
+  });
+
+  const parsed = safeJsonParse(response.text);
+  return {
+    candidateSummary: normalizeText(parsed?.candidateSummary || ''),
+    skills: Array.isArray(parsed?.skills) ? dedupeStrings(parsed.skills).slice(0, 20) : [],
+    projects: Array.isArray(parsed?.projects) ? parsed.projects.slice(0, 5).map((item) => ({
+      name: normalizeText(item?.name || ''),
+      description: normalizeText(item?.description || ''),
+      tech: Array.isArray(item?.tech) ? dedupeStrings(item.tech).slice(0, 12) : [],
+      impact: normalizeText(item?.impact || '')
+    })) : [],
+    experienceHighlights: Array.isArray(parsed?.experienceHighlights) ? dedupeStrings(parsed.experienceHighlights).slice(0, 10) : [],
+    questionFocusAreas: Array.isArray(parsed?.questionFocusAreas) ? dedupeStrings(parsed.questionFocusAreas).slice(0, 8) : []
+  };
+}
+
 export const interviewService = {
-  async startSession({ userId = 'anonymous', userName = 'Candidate', roundType = 'dsa', difficulty = 'medium', durationMin = 45, company = 'generic', repoUrl = '' }) {
+  async startSession({ userId = 'anonymous', userName = 'Candidate', roundType = 'dsa', difficulty = 'medium', durationMin = 45, company = 'generic', repoUrl = '', resumeContext = null }) {
     let repoContext = null;
     if (roundType === 'project' && String(repoUrl).trim()) {
       repoContext = await fetchGithubRepoContext(repoUrl.trim());
@@ -838,6 +916,7 @@ export const interviewService = {
       durationMin,
       company,
       userName,
+      resumeContext: resumeContext || null,
       repoContext
     };
 
@@ -1065,5 +1144,33 @@ export const interviewService = {
   async getReport(sessionId) {
     const report = await InterviewReport.findOne({ sessionId }).lean();
     return report;
+  },
+
+  async analyzeResume({ fileBuffer, mimeType, fileName = '' }) {
+    if (!fileBuffer || !mimeType) {
+      throw new Error('Resume file is required');
+    }
+
+    const supportedTypes = new Set([
+      'application/pdf',
+      'text/plain',
+      'text/markdown',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    ]);
+
+    if (!supportedTypes.has(mimeType)) {
+      throw new Error('Unsupported resume format. Please upload PDF, TXT, MD, DOC, or DOCX.');
+    }
+
+    const context = await analyzeResumeWithAi(fileBuffer, mimeType);
+    if (!context.candidateSummary && !context.projects.length && !context.skills.length) {
+      throw new Error('Could not extract enough information from the resume. Please try a clearer file.');
+    }
+
+    return {
+      fileName,
+      ...context
+    };
   }
 };
