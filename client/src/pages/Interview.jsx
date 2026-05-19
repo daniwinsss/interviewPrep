@@ -15,7 +15,6 @@ import {
   Mic,
   MicOff,
   PanelRight,
-  Play,
   Shield,
   Sparkles,
   Terminal,
@@ -996,14 +995,13 @@ export default function Interview() {
                     </div>
                   )}
 
-                  <div className="mt-8 flex items-center gap-4">
+                  <div className="mt-8 flex items-center justify-center gap-4">
                     <Button
                       size="lg"
                       className="h-14 px-8"
                       onClick={startInterview}
                       disabled={isStarting || !recordingConsent}
                     >
-                      <Play className="w-5 h-5 mr-2" />
                       {isStarting ? 'Starting...' : 'Start interview'}
                     </Button>
                     {roomIdRef.current && (
