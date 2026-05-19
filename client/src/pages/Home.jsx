@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowRight, Bot, Code2, Cpu, Globe, Sparkles, Terminal, Zap, CheckCircle2, BarChart3, LineChart, ShieldCheck, CalendarDays, TrendingUp } from 'lucide-react';
+import { ArrowRight, Bot, Code2, Cpu, Globe, Sparkles, Terminal, Zap } from 'lucide-react';
 import { AccentHeading } from '../components/AccentHeading';
 import { HeroVisual } from '../components/HeroVisual';
 import Card from '../components/ui/Card';
@@ -10,14 +10,14 @@ import Button from '../components/ui/Button';
 import Section from '../components/ui/Section';
 import Shell from '../components/ui/Shell';
 
-const fadeUp = {
+const fadeUp = (delay = 0) => ({
   hidden: { opacity: 0, y: 30 },
-  visible: (delay = 0) => ({
+  visible: {
     opacity: 1,
     y: 0,
     transition: { duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }
-  })
-};
+  }
+});
 
 const stagger = {
   hidden: {},
@@ -55,8 +55,7 @@ export default function Home() {
               <motion.div className="mt-8 flex flex-wrap gap-4" variants={fadeUp(0.3)}>
                 <Link to="/interview">
                   <Button size="lg" className="group h-14 px-8 text-base">
-                    Start AI Mock
-                    <ArrowRight className="ml-2 w-5 h-5 transition-transform group-hover:translate-x-1" />
+                    Mock Interview
                   </Button>
                 </Link>
                 <Link to="/problems">
@@ -80,7 +79,7 @@ export default function Home() {
               </motion.div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 1, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
@@ -152,17 +151,17 @@ export default function Home() {
               {
                 title: 'Daily streaks & heatmap',
                 desc: 'Stay consistent with daily streaks, topics hit, and active practice windows.',
-                icon: CalendarDays
+                icon: Sparkles
               },
               {
                 title: 'Smart recommendations',
                 desc: 'AI suggests the next best topics based on weak areas and upcoming interviews.',
-                icon: TrendingUp
+                icon: Terminal
               },
               {
                 title: 'Placement readiness score',
                 desc: 'Unified score across DSA, core subjects, and mock interviews.',
-                icon: ShieldCheck
+                icon: Zap
               }
             ].map((item) => (
               <Card key={item.title} className="p-8">
@@ -189,18 +188,18 @@ export default function Home() {
                   PrepDost highlights what matters: confidence gaps, topic mastery, and next steps for placement success.
                 </p>
                 <div className="mt-8 flex items-center gap-4 text-sm text-slate-500">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                  <Sparkles className="w-5 h-5 text-emerald-600" />
                   AI-generated revision plan
                 </div>
               </div>
               <div className="absolute top-0 right-0 p-8">
-                <LineChart className="w-32 h-32 text-slate-200" />
+                {/* Visual placeholder removed */}
               </div>
             </Card>
             <div className="grid gap-6">
               <Card className="p-7 flex items-start gap-4">
                 <div className="w-11 h-11 shrink-0 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-emerald-700" />
+                  <Terminal className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
                   <h4 className="text-lg font-semibold text-slate-900">Mock interview analytics</h4>
@@ -222,7 +221,7 @@ export default function Home() {
               </Card>
               <Card className="p-7 flex items-start gap-4">
                 <div className="w-11 h-11 shrink-0 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                  <Terminal className="w-5 h-5 text-emerald-700" />
+                  <Code2 className="w-5 h-5 text-emerald-700" />
                 </div>
                 <div>
                   <h4 className="text-lg font-semibold text-slate-900">VSCode-grade editor</h4>

@@ -108,7 +108,7 @@ function formatPlainTextDescription(text = '') {
   return html;
 }
 
-const ProblemDescriptionHtml = memo(function ProblemDescriptionHtml({ html, descriptionRef }) {
+  const ProblemDescriptionHtml = memo(function ProblemDescriptionHtml({ html, descriptionRef }) {
   return (
     <div
       ref={descriptionRef}
