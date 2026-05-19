@@ -26,7 +26,7 @@ import {
 import { motion } from 'framer-motion';
 import Peer from 'simple-peer/simplepeer.min.js';
 import { io } from 'socket.io-client';
-import { apiUrl } from '../lib/api';
+import { apiUrl, SOCKET_BASE_URL } from '../lib/api';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 
@@ -146,6 +146,29 @@ function Whiteboard({ strokes, setStrokes }) {
   const canvasRef = useRef(null);
   const drawingRef = useRef(false);
   const lastPointRef = useRef(null);
+  const activePointerIdRef = useRef(null);
+  const [tool, setTool] = useState('pen');
+
+  const drawStrokes = useCallback((ctx) => {
+    if (!ctx) return;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    strokes.forEach((stroke) => {
+      const points = Array.isArray(stroke) ? stroke : stroke?.points;
+      if (!points?.length) return;
+      const isEraser = !Array.isArray(stroke) && stroke.mode === 'eraser';
+      ctx.globalCompositeOperation = isEraser ? 'destination-out' : 'source-over';
+      ctx.strokeStyle = '#0f172a';
+      ctx.lineWidth = isEraser ? 18 : 2.5;
+      ctx.beginPath();
+      points.forEach((point, idx) => {
+        if (idx === 0) ctx.moveTo(point.x, point.y);
+        else ctx.lineTo(point.x, point.y);
+      });
+      ctx.stroke();
+    });
+    ctx.globalCompositeOperation = 'source-over';
+  }, [strokes]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -153,19 +176,8 @@ function Whiteboard({ strokes, setStrokes }) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#0f172a';
-    ctx.lineWidth = 2.5;
-    strokes.forEach((stroke) => {
-      ctx.beginPath();
-      stroke.forEach((point, idx) => {
-        if (idx === 0) ctx.moveTo(point.x, point.y);
-        else ctx.lineTo(point.x, point.y);
-      });
-      ctx.stroke();
-    });
-  }, [strokes]);
+    drawStrokes(ctx);
+  }, [drawStrokes]);
 
   const resizeCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -173,55 +185,105 @@ function Whiteboard({ strokes, setStrokes }) {
     const parent = canvas.parentElement;
     if (!parent) return;
     const rect = parent.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.max(1, Math.floor(rect.width * dpr));
+    canvas.height = Math.max(1, Math.floor(rect.height * dpr));
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
     const ctx = canvas.getContext('2d');
-    if (ctx) ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-  }, []);
+    if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawStrokes(ctx);
+  }, [drawStrokes]);
 
   useEffect(() => {
     resizeCanvas();
+    const canvas = canvasRef.current;
+    const parent = canvas?.parentElement;
     const handleResize = () => resizeCanvas();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    let observer = null;
+    if (parent && typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(() => resizeCanvas());
+      observer.observe(parent);
+    }
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (observer) observer.disconnect();
+    };
   }, [resizeCanvas]);
 
   const handlePointerDown = (event) => {
     drawingRef.current = true;
+    activePointerIdRef.current = event.pointerId;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     lastPointRef.current = point;
-    setStrokes((prev) => [...prev, [point]]);
+    setStrokes((prev) => [...prev, { mode: tool, points: [point] }]);
   };
 
   const handlePointerMove = (event) => {
     if (!drawingRef.current) return;
+    if (activePointerIdRef.current !== null && event.pointerId !== activePointerIdRef.current) return;
     const rect = event.currentTarget.getBoundingClientRect();
     const point = { x: event.clientX - rect.left, y: event.clientY - rect.top };
     lastPointRef.current = point;
     setStrokes((prev) => {
       const next = [...prev];
       const currentStroke = next[next.length - 1];
-      if (currentStroke) currentStroke.push(point);
+      if (currentStroke?.points) currentStroke.points.push(point);
       return next;
     });
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (event) => {
+    if (activePointerIdRef.current !== null && event?.pointerId !== undefined && event.pointerId !== activePointerIdRef.current) return;
+    if (event?.pointerId !== undefined) {
+      event.currentTarget?.releasePointerCapture?.(event.pointerId);
+    }
+    activePointerIdRef.current = null;
     drawingRef.current = false;
     lastPointRef.current = null;
   };
 
   return (
-    <div className="flex-1 rounded-3xl border border-slate-200 bg-white relative overflow-hidden">
+    <div className="h-[420px] md:h-[520px] rounded-3xl border border-slate-200 bg-white relative overflow-hidden">
+      <div className="absolute top-3 left-3 z-10 flex items-center gap-2">
+        <button
+          onClick={() => setTool('pen')}
+          className={`h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${
+            tool === 'pen' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'
+          }`}
+        >
+          Pen
+        </button>
+        <button
+          onClick={() => setTool('eraser')}
+          className={`h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest border ${
+            tool === 'eraser' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'
+          }`}
+        >
+          Eraser
+        </button>
+        <button
+          onClick={() => setStrokes([])}
+          className="h-8 px-3 rounded-lg text-[10px] font-bold uppercase tracking-widest border bg-white text-slate-500 border-slate-200"
+        >
+          Clear
+        </button>
+      </div>
       <canvas
         ref={canvasRef}
-        className="absolute inset-0"
+        className="absolute inset-0 touch-none"
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onPointerLeave={handlePointerUp}
       />
       <div className="absolute bottom-4 right-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
@@ -261,9 +323,9 @@ export default function Interview() {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [cameraError, setCameraError] = useState('');
   const [cameraStream, setCameraStream] = useState(null);
-  const [role, setRole] = useState('candidate');
+  const role = 'candidate';
   const [voiceStatus, setVoiceStatus] = useState('idle');
-  const [micEnabled, setMicEnabled] = useState(true);
+  const [aiVoiceEnabled, setAiVoiceEnabled] = useState(true);
   const [speakerEnabled, setSpeakerEnabled] = useState(true);
   const [pushToTalkEnabled, setPushToTalkEnabled] = useState(false);
   const [participants, setParticipants] = useState([]);
@@ -282,6 +344,8 @@ export default function Interview() {
   const remoteAudioRef = useRef(null);
   const userIdRef = useRef(`user_${Math.random().toString(36).slice(2, 10)}`);
   const roomIdRef = useRef(null);
+  const voiceInitializedRef = useRef(false);
+  const lastSpokenAiMessageRef = useRef('');
 
   const isDsa = topic === 'DSA';
   const isProject = topic === 'Project Experience';
@@ -325,6 +389,24 @@ export default function Interview() {
   }, [speakerEnabled]);
 
   useEffect(() => {
+    if (!aiVoiceEnabled) {
+      window.speechSynthesis?.cancel();
+      return;
+    }
+    const latestAiMessage = [...messages].reverse().find((msg) => msg.role === 'ai');
+    const text = latestAiMessage?.content?.trim();
+    if (!text || text === lastSpokenAiMessageRef.current) return;
+    if (!window.speechSynthesis || typeof window.SpeechSynthesisUtterance === 'undefined') return;
+
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    utterance.rate = 0.98;
+    utterance.pitch = 1;
+    window.speechSynthesis.speak(utterance);
+    lastSpokenAiMessageRef.current = text;
+  }, [messages, aiVoiceEnabled]);
+
+  useEffect(() => {
     return () => {
       if (cameraStream) {
         cameraStream.getTracks().forEach((track) => track.stop());
@@ -364,6 +446,7 @@ export default function Interview() {
     setTimerSeconds(0);
     setReport(null);
     lastReviewedCodeRef.current = '';
+    lastSpokenAiMessageRef.current = '';
 
     try {
       const res = await fetch(`${API}/start`, {
@@ -380,18 +463,18 @@ export default function Interview() {
       if (!res.ok) throw new Error(data.error || 'Failed to start interview');
       setSessionId(data._id);
       setMessages(data.messages || []);
+      lastSpokenAiMessageRef.current = '';
       syncInterviewState(data);
       setView('live');
       roomIdRef.current = data._id;
       localStorage.setItem('prepdost_session_id', data._id);
-      localStorage.setItem('prepdost_role', role);
       localStorage.setItem('prepdost_user_id', userIdRef.current);
     } catch (err) {
       setError(err.message || 'Failed to start interview');
     } finally {
       setIsStarting(false);
     }
-  }, [topic, repoUrl, isProject, syncInterviewState, role]);
+  }, [topic, repoUrl, isProject, syncInterviewState]);
 
   const buildPeer = useCallback((initiator, stream) => {
     if (peerRef.current) {
@@ -444,7 +527,7 @@ export default function Interview() {
 
   const connectSocket = useCallback(() => {
     if (socketRef.current) return socketRef.current;
-    const socket = io(apiUrl('').replace(/\/$/, ''), { transports: ['websocket'] });
+    const socket = io(SOCKET_BASE_URL || undefined, { transports: ['websocket'] });
     socketRef.current = socket;
 
     socket.on('connect', () => {
@@ -512,17 +595,13 @@ export default function Interview() {
     setVoiceStatus('requesting');
     try {
       let stream = null;
-      if (role !== 'observer') {
-        if (!navigator.mediaDevices?.getUserMedia) {
-          throw new Error('Microphone access is not supported in this browser.');
-        }
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        stream.getAudioTracks().forEach((track) => {
-          track.enabled = micEnabled && !pushToTalkEnabled;
-        });
-      } else {
-        stream = new MediaStream();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone access is not supported in this browser.');
       }
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getAudioTracks().forEach((track) => {
+        track.enabled = !pushToTalkEnabled;
+      });
       setLocalStream(stream);
       setVoiceStatus('connecting');
 
@@ -543,7 +622,7 @@ export default function Interview() {
       setVoiceError(err.message || 'Unable to access microphone.');
       setVoiceStatus('failed');
     }
-  }, [connectSocket, buildPeer, micEnabled, pushToTalkEnabled, remoteUserId, role, voiceStatus]);
+  }, [connectSocket, buildPeer, pushToTalkEnabled, remoteUserId, role, voiceStatus]);
 
   const hydrateSession = useCallback(async (sessionId) => {
     if (!sessionId) return;
@@ -561,6 +640,7 @@ export default function Interview() {
   }, [syncInterviewState]);
 
   const teardownVoice = useCallback(() => {
+    window.speechSynthesis?.cancel();
     if (peerRef.current) {
       peerRef.current.destroy();
       peerRef.current = null;
@@ -578,24 +658,48 @@ export default function Interview() {
     setVoiceStatus('idle');
   }, [localStream]);
 
+  const exitInterview = useCallback(() => {
+    teardownVoice();
+    if (cameraStream) {
+      cameraStream.getTracks().forEach((track) => track.stop());
+    }
+    setCameraStream(null);
+    setCameraEnabled(false);
+    setRemoteUserId(null);
+    setParticipants([]);
+    setSessionId(null);
+    setMessages([]);
+    setInput('');
+    setLiveTranscript('');
+    setError('');
+    roomIdRef.current = null;
+    voiceInitializedRef.current = false;
+    localStorage.removeItem('prepdost_session_id');
+    localStorage.removeItem('prepdost_user_id');
+    setView('lobby');
+  }, [teardownVoice, cameraStream]);
+
   useEffect(() => {
-    if (view !== 'live') return;
+    if (view !== 'live') {
+      if (voiceInitializedRef.current) {
+        teardownVoice();
+        voiceInitializedRef.current = false;
+      }
+      return;
+    }
+
     const storedSession = localStorage.getItem('prepdost_session_id');
-    const storedRole = localStorage.getItem('prepdost_role');
     const storedUserId = localStorage.getItem('prepdost_user_id');
     if (storedSession) {
       roomIdRef.current = storedSession;
     }
-    if (storedRole) {
-      setRole(storedRole);
-    }
     if (storedUserId) {
       userIdRef.current = storedUserId;
     }
-    if (roomIdRef.current) {
+    if (roomIdRef.current && !voiceInitializedRef.current) {
+      voiceInitializedRef.current = true;
       initVoice();
     }
-    return () => teardownVoice();
   }, [view, initVoice, teardownVoice]);
 
   useEffect(() => {
@@ -607,12 +711,6 @@ export default function Interview() {
   }, [hydrateSession, view]);
 
   useEffect(() => {
-    if (role === 'observer') {
-      setMicEnabled(false);
-    }
-  }, [role]);
-
-  useEffect(() => {
     if (!remoteUserId || !localStream) return;
     if (!peerRef.current && localStream) {
       buildPeer(role === 'candidate', localStream);
@@ -620,22 +718,22 @@ export default function Interview() {
   }, [remoteUserId, localStream, buildPeer, role]);
 
   useEffect(() => {
-    if (!localStream || role === 'observer') return;
+    if (!localStream) return;
     localStream.getAudioTracks().forEach((track) => {
-      track.enabled = micEnabled && (!pushToTalkEnabled);
+      track.enabled = !pushToTalkEnabled;
     });
-  }, [localStream, micEnabled, pushToTalkEnabled, role]);
+  }, [localStream, pushToTalkEnabled, role]);
 
   useEffect(() => {
     if (!pushToTalkEnabled) return;
     const handleKeyDown = (event) => {
-      if (event.code !== 'Space' || !localStream || role === 'observer' || !micEnabled) return;
+      if (event.code !== 'Space' || !localStream) return;
       localStream.getAudioTracks().forEach((track) => {
         track.enabled = true;
       });
     };
     const handleKeyUp = (event) => {
-      if (event.code !== 'Space' || !localStream || role === 'observer' || !micEnabled) return;
+      if (event.code !== 'Space' || !localStream) return;
       localStream.getAudioTracks().forEach((track) => {
         track.enabled = false;
       });
@@ -646,7 +744,7 @@ export default function Interview() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [pushToTalkEnabled, localStream, role, micEnabled]);
+  }, [pushToTalkEnabled, localStream, role]);
 
   const fetchReport = useCallback(async (targetSessionId) => {
     if (!targetSessionId) return;
@@ -663,11 +761,19 @@ export default function Interview() {
     if (isComplete && sessionId) fetchReport(sessionId);
   }, [isComplete, sessionId, fetchReport]);
 
-  const requestCodeFeedback = useCallback(async (nextCode) => {
-    if (!sessionId || topic !== 'DSA' || isComplete) return;
-    if (nextCode.trim().length < 20) return;
-    if (nextCode === lastReviewedCodeRef.current) return;
+  const requestCodeFeedback = useCallback(async (nextCode, options = {}) => {
+    const { force = false } = options;
+    if (!sessionId || topic !== 'DSA' || isComplete) {
+      setError('Start an active DSA interview to request feedback.');
+      return;
+    }
+    if (nextCode.trim().length < 20) {
+      setError('Write a bit more code before requesting feedback.');
+      return;
+    }
+    if (!force && nextCode === lastReviewedCodeRef.current) return;
     setIsMonitoringCode(true);
+    setError('');
     try {
       const res = await fetch(`${API}/code-feedback`, {
         method: 'POST',
@@ -677,10 +783,12 @@ export default function Interview() {
       const data = await readApiResponse(res);
       if (!res.ok) throw new Error(data.error || 'Feedback link disrupted');
       lastReviewedCodeRef.current = nextCode;
-      if (!data.skipped) {
-        setMessages(data.messages || []);
-        setCurrentPhase(data.session?.currentPhase || '');
+      if (data.skipped) {
+        setError('No new code changes detected since the last review.');
+        return;
       }
+      setMessages(data.messages || []);
+      setCurrentPhase(data.session?.currentPhase || '');
     } catch (err) {
       setError(err.message || 'Failed to retrieve code feedback');
     } finally {
@@ -835,19 +943,7 @@ export default function Interview() {
                     </div>
                   </div>
 
-                    <div className="mt-6 grid md:grid-cols-2 gap-6">
-                    <div>
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Role</label>
-                      <select
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className="mt-2 w-full bg-white border border-slate-200 rounded-2xl px-5 py-3 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-400"
-                      >
-                        <option value="candidate">Candidate</option>
-                        <option value="interviewer">Interviewer</option>
-                        <option value="observer">Observer (muted)</option>
-                      </select>
-                    </div>
+                    <div className="mt-6 grid md:grid-cols-1 gap-6">
                     <div>
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Voice mode</label>
                       <div className="mt-2 flex items-center gap-3">
@@ -1021,14 +1117,14 @@ export default function Interview() {
                   </div>
                 </div>
               <div className="flex items-center gap-3">
-                <Button variant="secondary" className="h-10 px-4" onClick={() => { setView('lobby'); teardownVoice(); }}>Exit</Button>
+                <Button variant="secondary" className="h-10 px-4" onClick={exitInterview}>Exit</Button>
                 <Button className="h-10 px-5" onClick={() => setIsComplete(true)}>End session</Button>
               </div>
             </div>
 
             <div className="flex-1 flex overflow-hidden relative">
               <audio ref={remoteAudioRef} autoPlay playsInline />
-              <div className={`${isDsa ? 'w-[38%]' : 'w-[45%]'} min-w-[320px] border-r border-slate-200 flex flex-col bg-slate-50`}>
+              <div className={`${isDsa ? 'w-[35%]' : 'w-[45%]'} min-w-[320px] border-r border-slate-200 flex flex-col bg-slate-50`}>
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
                   <div className="surface p-6 rounded-3xl border-slate-200 shadow-soft">
                     <div className="flex items-center justify-between">
@@ -1071,25 +1167,20 @@ export default function Interview() {
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Voice controls</p>
                         <div className="mt-2 space-y-2">
                           <button
-                            onClick={() => setMicEnabled((value) => !value)}
-                            disabled={role === 'observer'}
-                            className={`w-full h-9 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                              micEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'
-                            }`}
-                          >
-                            {micEnabled ? (
-                              <span className="flex items-center justify-center gap-2"><Mic className="w-3.5 h-3.5" />Mic on</span>
-                            ) : (
-                              <span className="flex items-center justify-center gap-2"><MicOff className="w-3.5 h-3.5" />Mic off</span>
-                            )}
-                          </button>
-                          <button
                             onClick={() => setSpeakerEnabled((value) => !value)}
                             className={`w-full h-9 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                              speakerEnabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-white text-slate-500 border-slate-200'
+                              speakerEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'
                             }`}
                           >
                             {speakerEnabled ? 'Speaker on' : 'Speaker off'}
+                          </button>
+                          <button
+                            onClick={() => setAiVoiceEnabled((value) => !value)}
+                            className={`w-full h-9 rounded-xl text-[10px] font-bold uppercase tracking-widest border transition-all ${
+                              aiVoiceEnabled ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white text-slate-500 border-slate-200'
+                            }`}
+                          >
+                            {aiVoiceEnabled ? 'AI voice on' : 'AI voice off'}
                           </button>
                           <div className="text-[10px] text-slate-400 uppercase tracking-widest flex items-center justify-between">
                             <span>Status</span>
@@ -1166,102 +1257,6 @@ export default function Interview() {
                 </div>
               </div>
 
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="p-6 border-b border-slate-200 bg-white">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Interview prompt</p>
-                      <h3 className="text-2xl font-bold text-slate-900 mt-2">{problemTitle || 'Interview overview'}</h3>
-                      <p className="mt-2 text-sm text-slate-600 leading-relaxed line-clamp-2">{problemContent || 'Answer the questions clearly and walk through your reasoning.'}</p>
-                    </div>
-                    {problemLink && (
-                      <a href={problemLink} target="_blank" rel="noopener noreferrer" className="surface p-3 rounded-xl border-slate-200 hover:border-emerald-200 transition-all">
-                        <ExternalLink className="w-5 h-5 text-slate-400" />
-                      </a>
-                    )}
-                  </div>
-                  {repoName && (
-                    <div className="mt-3 text-xs text-slate-500 flex items-center gap-2">
-                      <Globe className="w-4 h-4" />
-                      {repoName}
-                    </div>
-                  )}
-                </div>
-
-                {isDsa ? (
-                  <div className="flex-1 flex flex-col overflow-hidden">
-                    <div className="h-12 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-                      <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
-                        <Terminal className="w-4 h-4" />
-                        Code workspace
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <select
-                          value={language}
-                          onChange={(e) => {
-                            const nextLanguage = e.target.value;
-                            setLanguage(nextLanguage);
-                            setCode(STARTER_CODE[nextLanguage] || '');
-                            lastReviewedCodeRef.current = '';
-                          }}
-                          className="bg-white border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-xl"
-                        >
-                          {Object.entries(LANG_MAP).map(([key, value]) => (
-                            <option key={key} value={key}>{value.label}</option>
-                          ))}
-                        </select>
-                        <button
-                          onClick={() => requestCodeFeedback(code)}
-                          disabled={isStarting || isMonitoringCode || !sessionId || isComplete}
-                          className="text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-40"
-                        >
-                          {isMonitoringCode ? 'Reviewing...' : 'Request feedback'}
-                        </button>
-                      </div>
-                    </div>
-                    <div className="flex-1 bg-slate-900">
-                      <Editor
-                        height="100%"
-                        language={LANG_MAP[language]?.monaco || 'cpp'}
-                        theme="vs-dark"
-                        value={code}
-                        onChange={(value) => setCode(value || '')}
-                        options={{
-                          minimap: { enabled: false },
-                          fontSize: 14,
-                          padding: { top: 32, bottom: 32 },
-                          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
-                          scrollBeyondLastLine: false,
-                          lineNumbers: 'on',
-                          backgroundColor: '#0f172a',
-                          renderLineHighlight: 'all',
-                          cursorBlinking: 'smooth',
-                          smoothScrolling: true,
-                          automaticLayout: true
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex-1 grid md:grid-cols-2 gap-6 p-6 overflow-y-auto">
-                    {[
-                      { title: 'Answer structure', detail: 'Use STAR or clear phases, call out tradeoffs and impact.', icon: ClipboardCheck },
-                      { title: 'Ownership spotlight', detail: 'Explain your personal contributions and key decisions.', icon: Shield },
-                      { title: 'Metrics to mention', detail: 'Latency, scale, adoption, cost, or user impact numbers.', icon: Sparkles },
-                      { title: 'Architecture notes', detail: 'Sketch components and data flow in the whiteboard.', icon: PanelRight }
-                    ].map((card) => (
-                      <div key={card.title} className="surface p-6 rounded-3xl border-slate-200 shadow-soft">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
-                          <card.icon className="w-5 h-5 text-emerald-600" />
-                        </div>
-                        <h4 className="mt-4 text-lg font-bold text-slate-900">{card.title}</h4>
-                        <p className="mt-2 text-sm text-slate-600 leading-relaxed">{card.detail}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               <div className="w-[32%] min-w-[300px] border-l border-slate-200 bg-white flex flex-col">
                 <div className="flex border-b border-slate-200 bg-slate-50">
                   {TOOLS.map((tool) => (
@@ -1280,7 +1275,20 @@ export default function Interview() {
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {toolsTab === 'whiteboard' && (
-                    <Whiteboard strokes={strokes} setStrokes={setStrokes} />
+                    <div className="space-y-4">
+                      {isDsa && (
+                        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Problem</p>
+                          <div className="mt-2">
+                            <h4 className="text-sm font-bold text-slate-900">{problemTitle || 'Coding Problem'}</h4>
+                            <pre className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-slate-700 font-medium">
+{problemContent || 'Problem statement will appear here when the interview question loads.'}
+                            </pre>
+                          </div>
+                        </div>
+                      )}
+                      <Whiteboard strokes={strokes} setStrokes={setStrokes} />
+                    </div>
                   )}
                   {toolsTab === 'notes' && (
                     <textarea
@@ -1364,6 +1372,105 @@ export default function Interview() {
                   </div>
                 )}
               </div>
+
+              <div className="flex-1 flex flex-col overflow-hidden">
+                {!isDsa && (
+                  <div className="p-6 border-b border-slate-200 bg-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">Interview prompt</p>
+                        <h3 className="text-2xl font-bold text-slate-900 mt-2">{problemTitle || 'Interview overview'}</h3>
+                        <p className="mt-2 text-sm text-slate-600 leading-relaxed line-clamp-2">{problemContent || 'Answer the questions clearly and walk through your reasoning.'}</p>
+                      </div>
+                      {problemLink && (
+                        <a href={problemLink} target="_blank" rel="noopener noreferrer" className="surface p-3 rounded-xl border-slate-200 hover:border-emerald-200 transition-all">
+                          <ExternalLink className="w-5 h-5 text-slate-400" />
+                        </a>
+                      )}
+                    </div>
+                    {repoName && (
+                      <div className="mt-3 text-xs text-slate-500 flex items-center gap-2">
+                        <Globe className="w-4 h-4" />
+                        {repoName}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {isDsa ? (
+                  <div className="flex-1 flex flex-col overflow-hidden">
+                    <div className="h-12 px-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                      <div className="flex items-center gap-3 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">
+                        <Terminal className="w-4 h-4" />
+                        Code workspace
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <select
+                          value={language}
+                          onChange={(e) => {
+                            const nextLanguage = e.target.value;
+                            setLanguage(nextLanguage);
+                            setCode(STARTER_CODE[nextLanguage] || '');
+                            lastReviewedCodeRef.current = '';
+                          }}
+                          className="bg-white border border-slate-200 text-slate-700 text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-xl"
+                        >
+                          {Object.entries(LANG_MAP).map(([key, value]) => (
+                            <option key={key} value={key}>{value.label}</option>
+                          ))}
+                        </select>
+                        <button
+                          onClick={() => requestCodeFeedback(code, { force: true })}
+                          disabled={isStarting || isMonitoringCode || !sessionId || isComplete}
+                          className="text-[9px] font-bold uppercase tracking-widest px-3 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 transition-all disabled:opacity-40"
+                        >
+                          {isMonitoringCode ? 'Reviewing...' : 'Request feedback'}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex-1 bg-slate-900">
+                      <Editor
+                        height="100%"
+                        language={LANG_MAP[language]?.monaco || 'cpp'}
+                        theme="vs-dark"
+                        value={code}
+                        onChange={(value) => setCode(value || '')}
+                        options={{
+                          minimap: { enabled: false },
+                          fontSize: 14,
+                          padding: { top: 32, bottom: 32 },
+                          fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
+                          scrollBeyondLastLine: false,
+                          lineNumbers: 'on',
+                          backgroundColor: '#0f172a',
+                          renderLineHighlight: 'all',
+                          cursorBlinking: 'smooth',
+                          smoothScrolling: true,
+                          automaticLayout: true
+                        }}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex-1 grid md:grid-cols-2 gap-6 p-6 overflow-y-auto">
+                    {[
+                      { title: 'Answer structure', detail: 'Use STAR or clear phases, call out tradeoffs and impact.', icon: ClipboardCheck },
+                      { title: 'Ownership spotlight', detail: 'Explain your personal contributions and key decisions.', icon: Shield },
+                      { title: 'Metrics to mention', detail: 'Latency, scale, adoption, cost, or user impact numbers.', icon: Sparkles },
+                      { title: 'Architecture notes', detail: 'Sketch components and data flow in the whiteboard.', icon: PanelRight }
+                    ].map((card) => (
+                      <div key={card.title} className="surface p-6 rounded-3xl border-slate-200 shadow-soft">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center">
+                          <card.icon className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        <h4 className="mt-4 text-lg font-bold text-slate-900">{card.title}</h4>
+                        <p className="mt-2 text-sm text-slate-600 leading-relaxed">{card.detail}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {error && (
                 <div className="absolute bottom-6 right-[34%] bg-rose-50 border border-rose-200 text-rose-600 text-xs font-bold uppercase tracking-widest px-6 py-3 rounded-2xl shadow-soft">
                   {error}
