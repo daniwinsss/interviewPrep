@@ -113,45 +113,21 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
       compile_timeout: 10000
     };
 
-    const apiKey = process.env.PISTON_API_KEY || '';
-    const authScheme = (process.env.PISTON_API_AUTH_SCHEME || 'Bearer').trim();
-    const baseHeaders = {};
-    if (apiKey) {
-      baseHeaders.Authorization = `${authScheme} ${apiKey}`;
-      baseHeaders['x-api-key'] = apiKey;
-    }
-
     const startTime = Date.now();
     let response = null;
     let lastError = null;
 
     for (let i = 0; i < endpoints.length; i++) {
       const endpoint = endpoints[i];
-      const tryWithoutAuth = apiKey && i === 0;
-
-      // Some providers reject unknown/invalid auth headers. For the first endpoint:
-      // if configured auth fails with 401/403, retry once without auth headers.
-      const attempts = tryWithoutAuth ? [true, false] : [true];
-
-      for (const includeAuth of attempts) {
-        try {
-          const headers = includeAuth ? baseHeaders : {};
-          response = await axios.post(endpoint, requestBody, {
-            headers,
-            timeout: Math.max(timeoutMs + 2000, 15000)
-          });
-          lastError = null;
-          break;
-        } catch (err) {
-          lastError = err;
-          const status = err?.response?.status;
-          const isAuthFailure = status === 401 || status === 403;
-          const canRetryWithoutAuth = includeAuth && tryWithoutAuth && isAuthFailure;
-          if (canRetryWithoutAuth) continue;
-        }
+      try {
+        response = await axios.post(endpoint, requestBody, {
+          timeout: Math.max(timeoutMs + 2000, 15000)
+        });
+        lastError = null;
+        break;
+      } catch (err) {
+        lastError = err;
       }
-
-      if (response) break;
     }
 
     if (!response && lastError) {
@@ -197,7 +173,7 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
     const status = err?.response?.status;
     const statusSuffix = status ? ` (HTTP ${status})` : '';
     const message = status === 401 || status === 403
-      ? 'Unauthorized by execution provider. Check PISTON_API_KEY / PISTON_API_URL or remove invalid auth headers.'
+      ? 'Unauthorized by execution provider. Check PISTON_API_URL or endpoint access settings.'
       : err.message;
 
     return {
