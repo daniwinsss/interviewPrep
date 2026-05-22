@@ -5,6 +5,11 @@ import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
+const DEFAULT_PISTON_ENDPOINTS = [
+  'https://emkc.org/api/v2/piston/execute',
+  'https://piston-api.onrender.com/execute'
+];
+
 /**
  * Local execution service for Java, Python, and C++.
  * Uses system-installed compilers/interpreters — no Docker required.
@@ -89,8 +94,12 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
     const pistonLang = langMap[language] || language;
     const fileName = fileNames[language] || 'solution';
 
-    const startTime = Date.now();
-    const response = await axios.post('https://emkc.org/api/v2/piston/execute', {
+    const pistonUrl = process.env.PISTON_API_URL;
+    const endpoints = pistonUrl
+      ? [pistonUrl, ...DEFAULT_PISTON_ENDPOINTS.filter(url => url !== pistonUrl)]
+      : DEFAULT_PISTON_ENDPOINTS;
+
+    const requestBody = {
       language: pistonLang,
       version: '*',
       files: [
@@ -102,9 +111,52 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
       stdin: stdin,
       run_timeout: timeoutMs,
       compile_timeout: 10000
-    }, {
-      timeout: Math.max(timeoutMs + 2000, 15000)
-    });
+    };
+
+    const apiKey = process.env.PISTON_API_KEY || '';
+    const authScheme = (process.env.PISTON_API_AUTH_SCHEME || 'Bearer').trim();
+    const baseHeaders = {};
+    if (apiKey) {
+      baseHeaders.Authorization = `${authScheme} ${apiKey}`;
+      baseHeaders['x-api-key'] = apiKey;
+    }
+
+    const startTime = Date.now();
+    let response = null;
+    let lastError = null;
+
+    for (let i = 0; i < endpoints.length; i++) {
+      const endpoint = endpoints[i];
+      const tryWithoutAuth = apiKey && i === 0;
+
+      // Some providers reject unknown/invalid auth headers. For the first endpoint:
+      // if configured auth fails with 401/403, retry once without auth headers.
+      const attempts = tryWithoutAuth ? [true, false] : [true];
+
+      for (const includeAuth of attempts) {
+        try {
+          const headers = includeAuth ? baseHeaders : {};
+          response = await axios.post(endpoint, requestBody, {
+            headers,
+            timeout: Math.max(timeoutMs + 2000, 15000)
+          });
+          lastError = null;
+          break;
+        } catch (err) {
+          lastError = err;
+          const status = err?.response?.status;
+          const isAuthFailure = status === 401 || status === 403;
+          const canRetryWithoutAuth = includeAuth && tryWithoutAuth && isAuthFailure;
+          if (canRetryWithoutAuth) continue;
+        }
+      }
+
+      if (response) break;
+    }
+
+    if (!response && lastError) {
+      throw lastError;
+    }
 
     const elapsed = Date.now() - startTime;
     const data = response.data;
@@ -142,9 +194,15 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
       time: Math.min(elapsed, timeoutMs)
     };
   } catch (err) {
+    const status = err?.response?.status;
+    const statusSuffix = status ? ` (HTTP ${status})` : '';
+    const message = status === 401 || status === 403
+      ? 'Unauthorized by execution provider. Check PISTON_API_KEY / PISTON_API_URL or remove invalid auth headers.'
+      : err.message;
+
     return {
       stdout: '',
-      stderr: `Piston execution failed: ${err.message}`,
+      stderr: `Piston execution failed${statusSuffix}: ${message}`,
       error: 'Execution Error',
       status: 'error',
       time: 0
