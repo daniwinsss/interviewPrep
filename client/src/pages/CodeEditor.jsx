@@ -482,6 +482,12 @@ export default function CodeEditor() {
                   cursorSmoothCaretAnimation: 'on',
                   smoothScrolling: true,
                   contextmenu: false,
+                  tabSize: 4,
+                  insertSpaces: true,
+                  autoIndent: 'full',
+                  detectIndentation: true,
+                  guides: { indentation: false },
+                  renderIndentGuides: false,
                 }}
               />
             </div>

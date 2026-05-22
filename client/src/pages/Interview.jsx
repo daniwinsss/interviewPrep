@@ -1685,7 +1685,13 @@ export default function Interview() {
                           renderLineHighlight: 'all',
                           cursorBlinking: 'smooth',
                           smoothScrolling: true,
-                          automaticLayout: true
+                          automaticLayout: true,
+                          tabSize: 4,
+                          insertSpaces: true,
+                          autoIndent: 'full',
+                          detectIndentation: true,
+                          guides: { indentation: false },
+                          renderIndentGuides: false,
                         }}
                       />
                     </div>

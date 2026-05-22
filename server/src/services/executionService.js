@@ -3,10 +3,12 @@ import { writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
 import path from 'path';
 import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
+import axios from 'axios';
 
 /**
  * Local execution service for Java, Python, and C++.
  * Uses system-installed compilers/interpreters — no Docker required.
+ * Falls back to Piston API if local compilers/interpreters are not found on the system.
  * 
  * Prerequisites:
  *   - Python: python3 or python must be on PATH
@@ -35,15 +37,121 @@ export const executionService = {
         default:
           result = { stdout: '', stderr: 'Unsupported language', error: 'Unsupported language', status: 'error', time: 0 };
       }
+
+      // Check if local execution failed because compilers/interpreters are missing
+      const isMissingCompiler = result.status === 'error' && (
+        (result.stderr && (
+          result.stderr.toLowerCase().includes('not found') ||
+          result.stderr.toLowerCase().includes('not recognized') ||
+          result.stderr.toLowerCase().includes('command not found')
+        )) ||
+        (result.error && (
+          result.error.toLowerCase().includes('enoent') ||
+          result.error.toLowerCase().includes('not found') ||
+          result.error.toLowerCase().includes('not recognized') ||
+          result.error.toLowerCase().includes('command not found')
+        ))
+      );
+
+      if (isMissingCompiler) {
+        console.log(`Local compiler/interpreter missing for ${language}. Falling back to Piston API...`);
+        return await runCodeViaPiston(code, language, stdin, timeoutMs);
+      }
+
       return result;
     } catch (err) {
-      return { stdout: '', stderr: err.message, error: 'System Error', status: 'error', time: 0 };
+      console.log(`Local execution failed with system error: ${err.message}. Trying Piston API...`);
+      return await runCodeViaPiston(code, language, stdin, timeoutMs);
     } finally {
       // Clean up temp directory
       try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
     }
   }
 };
+
+async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
+  try {
+    const classNameMatch = code.match(/public\s+class\s+(\w+)/);
+    const className = classNameMatch ? classNameMatch[1] : 'Main';
+
+    const langMap = {
+      cpp: 'cpp',
+      java: 'java',
+      python: 'python'
+    };
+
+    const fileNames = {
+      cpp: 'solution.cpp',
+      java: `${className}.java`,
+      python: 'solution.py'
+    };
+
+    const pistonLang = langMap[language] || language;
+    const fileName = fileNames[language] || 'solution';
+
+    const startTime = Date.now();
+    const response = await axios.post('https://emkc.org/api/v2/piston/execute', {
+      language: pistonLang,
+      version: '*',
+      files: [
+        {
+          name: fileName,
+          content: code
+        }
+      ],
+      stdin: stdin,
+      run_timeout: timeoutMs,
+      compile_timeout: 10000
+    }, {
+      timeout: Math.max(timeoutMs + 2000, 15000)
+    });
+
+    const elapsed = Date.now() - startTime;
+    const data = response.data;
+
+    // Check compilation errors
+    if (data.compile && data.compile.code !== 0) {
+      return {
+        stdout: data.compile.stdout || '',
+        stderr: `Compilation Error:\n${data.compile.stderr || data.compile.output || ''}`,
+        error: 'Compilation Error',
+        status: 'error',
+        time: 0
+      };
+    }
+
+    const runResult = data.run || {};
+    const stdout = runResult.stdout || '';
+    const stderr = runResult.stderr || '';
+
+    if (runResult.code !== 0) {
+      return {
+        stdout,
+        stderr,
+        error: runResult.signal === 'SIGKILL' ? 'Time Limit Exceeded' : 'Runtime Error',
+        status: runResult.signal === 'SIGKILL' ? 'tle' : 'error',
+        time: Math.min(elapsed, timeoutMs)
+      };
+    }
+
+    return {
+      stdout,
+      stderr,
+      error: null,
+      status: 'success',
+      time: Math.min(elapsed, timeoutMs)
+    };
+  } catch (err) {
+    return {
+      stdout: '',
+      stderr: `Piston execution failed: ${err.message}`,
+      error: 'Execution Error',
+      status: 'error',
+      time: 0
+    };
+  }
+}
+
 
 function runCommand(cmd, stdin, timeoutMs) {
   return new Promise((resolve) => {
