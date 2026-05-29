@@ -7,7 +7,7 @@ import axios from 'axios';
 
 const DEFAULT_PISTON_ENDPOINTS = [
   'https://emkc.org/api/v2/piston/execute',
-  'https://piston-api.onrender.com/execute'
+  'https://piston.onrender.com/api/v2/execute'
 ];
 
 /**
@@ -69,7 +69,7 @@ export const executionService = {
       return await runCodeViaPiston(code, language, stdin, timeoutMs);
     } finally {
       // Clean up temp directory
-      try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
+      try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) { }
     }
   }
 };
@@ -211,7 +211,7 @@ function runCommand(cmd, stdin, timeoutMs) {
 async function runPython(code, stdin, tmpDir, timeoutMs) {
   const filePath = path.join(tmpDir, 'solution.py');
   writeFileSync(filePath, code, 'utf-8');
-  
+
   // Try python3 first, fall back to python
   const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
   const cmd = `${pythonCmd} "${filePath}"`;
@@ -222,7 +222,7 @@ async function runJava(code, stdin, tmpDir, timeoutMs) {
   // Extract the public class name from the code, defaulting to Main
   const classNameMatch = code.match(/public\s+class\s+(\w+)/);
   const className = classNameMatch ? classNameMatch[1] : 'Main';
-  
+
   const filePath = path.join(tmpDir, `${className}.java`);
   writeFileSync(filePath, code, 'utf-8');
 
