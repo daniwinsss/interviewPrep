@@ -5,15 +5,25 @@ import os from 'os';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
-const DEFAULT_PISTON_ENDPOINTS = [
-  'https://emkc.org/api/v2/piston/execute',
-  'https://piston.onrender.com/api/v2/execute'
-];
+const DEFAULT_PISTON_ENDPOINTS = [];
+
+function normalizePistonEndpoint(url) {
+  if (!url) return null;
+
+  const trimmed = url.trim().replace(/\/+$/, '');
+  if (!trimmed) return null;
+  if (/\/api\/v2\/piston\/execute$/i.test(trimmed)) return trimmed;
+  if (/\/api\/v2\/execute$/i.test(trimmed)) {
+    return trimmed.replace(/\/api\/v2\/execute$/i, '/api/v2/piston/execute');
+  }
+
+  return `${trimmed}/api/v2/piston/execute`;
+}
 
 /**
  * Local execution service for Java, Python, and C++.
  * Uses system-installed compilers/interpreters — no Docker required.
- * Falls back to Piston API if local compilers/interpreters are not found on the system.
+ * Falls back to a configured Piston API if local compilers/interpreters are not found on the system.
  * 
  * Prerequisites:
  *   - Python: python3 or python must be on PATH
@@ -59,13 +69,13 @@ export const executionService = {
       );
 
       if (isMissingCompiler) {
-        console.log(`Local compiler/interpreter missing for ${language}. Falling back to Piston API...`);
+        console.log(`Local compiler/interpreter missing for ${language}. Checking configured Piston fallback...`);
         return await runCodeViaPiston(code, language, stdin, timeoutMs);
       }
 
       return result;
     } catch (err) {
-      console.log(`Local execution failed with system error: ${err.message}. Trying Piston API...`);
+      console.log(`Local execution failed with system error: ${err.message}. Checking configured Piston fallback...`);
       return await runCodeViaPiston(code, language, stdin, timeoutMs);
     } finally {
       // Clean up temp directory
@@ -94,10 +104,21 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
     const pistonLang = langMap[language] || language;
     const fileName = fileNames[language] || 'solution';
 
-    const pistonUrl = process.env.PISTON_API_URL;
-    const endpoints = pistonUrl
-      ? [pistonUrl, ...DEFAULT_PISTON_ENDPOINTS.filter(url => url !== pistonUrl)]
-      : DEFAULT_PISTON_ENDPOINTS;
+    const pistonUrl = normalizePistonEndpoint(process.env.PISTON_API_URL);
+    const endpoints = [
+      ...(pistonUrl ? [pistonUrl] : []),
+      ...DEFAULT_PISTON_ENDPOINTS
+    ].filter((url, index, urls) => url && urls.indexOf(url) === index);
+
+    if (endpoints.length === 0) {
+      return {
+        stdout: '',
+        stderr: 'Local compiler/interpreter is not available on this server, and no PISTON_API_URL is configured. Install the required compiler on the server or set PISTON_API_URL to a self-hosted Piston instance.',
+        error: 'Execution Provider Unavailable',
+        status: 'error',
+        time: 0
+      };
+    }
 
     const requestBody = {
       language: pistonLang,
@@ -127,6 +148,8 @@ async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
         break;
       } catch (err) {
         lastError = err;
+        const status = err?.response?.status;
+        console.warn(`Piston endpoint failed: ${endpoint}${status ? ` (HTTP ${status})` : ''}`);
       }
     }
 
