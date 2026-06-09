@@ -1,6 +1,4 @@
 import express from 'express';
-import { Queue } from 'bullmq';
-import IORedis from 'ioredis';
 import Problem from '../models/Problem.js';
 import Submission from '../models/Submission.js';
 import { executionService } from '../services/executionService.js';
@@ -29,18 +27,35 @@ function sanitizeExpectedOutput(output = '') {
   return firstBlock;
 }
 
-// Redis / BullMQ Queue — gracefully optional
-let executionQueue = null;
-try {
-  const connection = new IORedis(process.env.REDIS_URI || 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-    enableOfflineQueue: false,
-    lazyConnect: true,
-  });
-  connection.on('error', () => {}); // Suppress noise
-  executionQueue = new Queue('code-execution', { connection });
-  executionQueue.on('error', () => {}); // Suppress noise
-} catch (_) {}
+function normalizeJudgeOutput(output = '') {
+  return String(output)
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map(line => line.trimEnd())
+    .join('\n')
+    .trim();
+}
+
+function outputsMatch(actual = '', expected = '') {
+  const normalizedActual = normalizeJudgeOutput(actual);
+  const normalizedExpected = normalizeJudgeOutput(expected);
+
+  if (normalizedActual === normalizedExpected) return true;
+
+  const actualTokens = normalizedActual.split(/\s+/).filter(Boolean);
+  const expectedTokens = normalizedExpected.split(/\s+/).filter(Boolean);
+  return actualTokens.length === expectedTokens.length
+    && actualTokens.every((token, index) => token === expectedTokens[index]);
+}
+
+function resultStatusToSubmissionStatus(status) {
+  if (status === 'success') return null;
+  if (status === 'tle') return 'tle';
+  if (status === 'mle') return 'mle';
+  if (status === 'compilation_error') return 'compilation_error';
+  if (status === 'runtime_error') return 'runtime_error';
+  return 'error';
+}
 
 // ─── GET /api/judge/problems ─────────────────────────────────────────────────
 // Supports query params: ?division=Bronze&source=usaco
@@ -142,6 +157,7 @@ router.post('/submissions', async (req, res) => {
     // Run synchronously against all test cases (no Redis needed)
     let passed = 0;
     let totalTime = 0;
+    let maxMemory = 0;
     let firstError = null;
     const results = [];
 
@@ -150,36 +166,42 @@ router.post('/submissions', async (req, res) => {
         code,
         language,
         stdin: tc.input,
-        timeoutMs: problem.timeLimit || 2000
+        timeoutMs: problem.timeLimit || 2000,
+        memoryLimitMb: problem.memoryLimit || 256
       });
 
       totalTime += result.time;
+      maxMemory = Math.max(maxMemory, result.memory || 0);
 
-      const actualOutput = (result.stdout || '').trim();
+      const actualOutput = normalizeJudgeOutput(result.stdout || '');
       const expectedOutput = sanitizeExpectedOutput(tc.output || '');
-      const passed_ = actualOutput === expectedOutput;
+      const executionFailure = resultStatusToSubmissionStatus(result.status);
+      const passed_ = !executionFailure && outputsMatch(actualOutput, expectedOutput);
+      const caseStatus = passed_ ? 'accepted' : (executionFailure || 'wrong_answer');
 
       if (passed_) {
         passed++;
       } else if (!firstError) {
-        firstError = result.status === 'tle' ? 'tle' 
-          : result.status === 'error' ? 'error'
-          : 'wrong_answer';
+        firstError = caseStatus;
       }
 
       results.push({
         testCase: i + 1,
         passed: passed_,
-        status: passed_ ? 'accepted' : (result.status === 'tle' ? 'tle' : result.status === 'error' ? 'error' : 'wrong_answer'),
+        status: caseStatus,
         time: result.time,
+        memory: result.memory || 0,
         // Only show input/output for non-hidden test cases
         ...(tc.isHidden ? {} : {
           input: tc.input,
           expected: expectedOutput,
           actual: actualOutput,
-          stderr: result.stderr
+          stderr: result.stderr,
+          compile_output: result.compile_output
         })
       });
+
+      if (!passed_) break;
     }
 
     const finalStatus = passed === problem.testCases.length
@@ -189,6 +211,7 @@ router.post('/submissions', async (req, res) => {
     submission.status = finalStatus;
     submission.results = results;
     submission.time = totalTime;
+    submission.memoryUsed = maxMemory;
     await submission.save();
 
     res.json({
@@ -197,6 +220,7 @@ router.post('/submissions', async (req, res) => {
       passed,
       total: problem.testCases.length,
       time: totalTime,
+      memory: maxMemory,
       results
     });
 

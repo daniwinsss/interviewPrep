@@ -135,22 +135,21 @@ The problems list (`/problems`) and editor (`/problems/:id`) form a complete onl
 - Problem statement, constraints, and sample test cases shown alongside
 
 #### Code Execution
-Two-tier execution strategy:
-1. **Local execution** (preferred) — spawns `g++`, `javac`/`java`, or `python3` as child processes
-   - C++: compiled with `-O2` optimization
-   - Java: compiled with `javac`, run with `-Xmx256m -Xss64m`
-   - Python: uses `python` (Windows) or `python3` (Linux/Mac)
-2. **Configured Piston fallback** — if local compilers aren't found, uses `PISTON_API_URL` when pointed at a self-hosted or authorized Piston instance
+Cloud execution strategy:
+1. **Judge0 cloud execution** — backend submits source code, language ID, stdin, CPU limit, and memory limit to Judge0
+2. **Polling lifecycle** — Judge0 returns a token first; the backend polls that token until the job leaves `In Queue` / `Processing`
+3. **Sandboxed result mapping** — backend returns stdout, stderr, compiler output, time, memory, and a platform-friendly status
 
 #### Custom Test Runner (`/run`)
 - Run code against any custom stdin input
-- Returns: `stdout`, `stderr`, `status` (`success` / `error` / `tle`), and execution time
+- Returns: `stdout`, `stderr`, `compile_output`, `status`, execution time, and memory
 
 #### Full Submission (`/submissions`)
-- Runs code against **all** test cases in the database (including hidden ones)
-- For each test case: compares trimmed actual vs. expected output
-- Returns: `passed` count, `total`, `time`, `status` (`accepted` / `wrong_answer` / `tle` / `error`)
-- Visible test cases show `input`, `expected`, `actual`, `stderr`
+- Runs code against test cases in the database (including hidden ones)
+- Stops on the first failing testcase to save Judge0 quota
+- Compares normalized output with token-wise fallback to avoid false WAs from trailing spaces/newline differences
+- Returns: `passed` count, `total`, `time`, `memory`, `status` (`accepted` / `wrong_answer` / `compilation_error` / `runtime_error` / `tle` / `mle` / `error`)
+- Visible test cases show `input`, `expected`, `actual`, `stderr`, and compiler output when available
 - Hidden test cases only reveal `passed`/`failed` — no leakage
 
 #### USACO Scraper
@@ -241,7 +240,7 @@ A polished marketing landing page (`/`) built with Framer Motion animations:
 | File uploads | Multer |
 | Auth | JWT (`jsonwebtoken`) |
 | Scraping | Axios + Cheerio |
-| Process execution | `child_process.exec` |
+| Code execution | Judge0 cloud API |
 
 ### Infrastructure
 
@@ -251,7 +250,7 @@ A polished marketing landing page (`/`) built with Framer Motion animations:
 | Redis | BullMQ job queue (optional) |
 | Docker Compose | Local MongoDB + Redis |
 | Vercel | Frontend deployment + serverless API proxy |
-| Piston API | Optional self-hosted/authorized code execution fallback |
+| Judge0 API | Sandboxed cloud code execution |
 
 ---
 
@@ -290,7 +289,7 @@ interviewPrep/
 │       ├── services/
 │       │   ├── interviewService.js  # Core AI interview logic (~1200 lines)
 │       │   ├── llmService.js        # Legacy simple LLM service
-│       │   └── executionService.js  # Code execution (local + optional Piston fallback)
+│       │   └── executionService.js  # Judge0 code execution adapter
 │       ├── models/
 │       │   ├── User.js
 │       │   ├── Problem.js
@@ -383,8 +382,9 @@ GEMINI_API_KEY=your_gemini_api_key_here
 # Optional
 JWT_SECRET=your_jwt_secret
 REDIS_URI=redis://localhost:6379
-# Optional: self-hosted or authorized Piston endpoint
-PISTON_API_URL=https://your-piston-host.example.com
+JUDGE0_API_URL=https://judge0-ce.p.rapidapi.com
+JUDGE0_API_KEY=your_judge0_api_key
+JUDGE0_API_HOST=judge0-ce.p.rapidapi.com
 PORT=3000
 NODE_ENV=development
 ```
@@ -398,7 +398,7 @@ NODE_ENV=development
 - Node.js 18+
 - MongoDB (or Docker)
 - Redis (optional — only needed for BullMQ worker)
-- `g++`, `java`/`javac`, `python3` on PATH for local code execution
+- Judge0 cloud credentials for code execution
 
 ### 1. Start infrastructure
 
@@ -460,6 +460,20 @@ The project is configured for **Vercel** deployment:
 
 For a self-hosted setup, run the Express server as a standalone process and serve the built Vite output from a CDN or static host.
 
+### Code Execution Request Flow
+
+```text
+Monaco editor
+  -> POST /api/judge/run or /api/judge/submissions
+  -> server/src/routes/judge.js
+  -> server/src/services/executionService.js
+  -> Judge0 /submissions
+  -> token polling
+  -> normalized result returned to the existing UI
+```
+
+For custom runs, the backend sends the editor code and custom stdin to Judge0 and returns the raw execution result. For submissions, the backend loads official test cases from MongoDB, sends one Judge0 execution per testcase, compares normalized output, stops on the first failure, saves the submission, and hides hidden testcase input/output from the client.
+
 ---
 
 ## Rate Limiting (Production)
@@ -479,7 +493,7 @@ Rate limiting is **skipped in development** (`NODE_ENV !== 'production'`).
 - **Phase-gated interview flow** — each round type has a fixed phase sequence enforced by both the backend and the AI's system prompt, preventing the interviewer from skipping critical areas
 - **SHA-1 deduplication for code feedback** — prevents the server from sending redundant AI reviews when the candidate hasn't changed their code
 - **Graceful offline fallbacks** — every AI call has a heuristic fallback so the entire platform works without a Gemini key (useful for local testing)
-- **Two-tier code execution** — prioritizes local compilers for speed and reliability, with optional fallback to a configured Piston API if compilers are not installed
+- **Judge0-only code execution** — all user code runs in Judge0's sandbox; the server never executes submitted code locally
 - **Sanitized test case output** — only the first output block (before any blank line) is used for comparison, preventing false WAs from scraped explanatory prose
 
 ---

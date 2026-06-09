@@ -20,14 +20,20 @@ const statusIcon = {
   accepted:    <CheckCircle className="w-5 h-5 text-emerald-400" />,
   wrong_answer:<XCircle className="w-5 h-5 text-rose-400" />,
   error:       <AlertTriangle className="w-5 h-5 text-amber-400" />,
+  compilation_error:<AlertTriangle className="w-5 h-5 text-amber-400" />,
+  runtime_error:<AlertTriangle className="w-5 h-5 text-rose-400" />,
   tle:         <Clock className="w-5 h-5 text-yellow-400" />,
+  mle:         <MemoryStick className="w-5 h-5 text-orange-400" />,
 };
 
   const statusLabel = {
     accepted:     'Accepted',
     wrong_answer: 'Wrong Answer',
     error:        'Runtime Error',
+    compilation_error: 'Compilation Error',
+    runtime_error: 'Runtime Error',
     tle:          'Time Limit Exceeded',
+    mle:          'Memory Limit Exceeded',
   };
 
 function escapeHtml(text = '') {
@@ -391,8 +397,12 @@ export default function CodeEditor() {
                       <div className={`p-6 rounded-3xl border flex items-center gap-4 ${output.status === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' : 'bg-rose-50 border-rose-200 text-rose-600'}`}>
                         {output.status === 'success' ? <CheckCircle className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
                         <div>
-                          <p className="text-xs font-bold uppercase tracking-widest">{output.status === 'success' ? 'Execution complete' : 'Execution failed'}</p>
-                          <p className="text-xl font-bold">{output.status === 'success' ? `${output.time}ms` : 'Error'}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest">{output.status === 'success' ? 'Execution complete' : (statusLabel[output.status] || 'Execution failed')}</p>
+                          <p className="text-xl font-bold">
+                            {output.status === 'success'
+                              ? `${output.time}ms${output.memory ? ` | ${output.memory}KB` : ''}`
+                              : 'Error'}
+                          </p>
                         </div>
                       </div>
                       
@@ -410,6 +420,15 @@ export default function CodeEditor() {
                           <span className="text-[9px] font-bold text-rose-500/70 uppercase tracking-widest ml-4">Error</span>
                           <pre className="bg-rose-50 p-6 rounded-3xl border border-rose-200 font-mono text-xs text-rose-600 whitespace-pre-wrap leading-relaxed">
                             {output.stderr}
+                          </pre>
+                        </div>
+                      )}
+
+                      {output.compile_output && output.compile_output !== output.stderr && (
+                        <div className="space-y-3">
+                          <span className="text-[9px] font-bold text-amber-500/70 uppercase tracking-widest ml-4">Compiler</span>
+                          <pre className="bg-amber-50 p-6 rounded-3xl border border-amber-200 font-mono text-xs text-amber-700 whitespace-pre-wrap leading-relaxed">
+                            {output.compile_output}
                           </pre>
                         </div>
                       )}
@@ -436,7 +455,9 @@ export default function CodeEditor() {
                                 <div className={`w-1.5 h-1.5 rounded-full ${r.passed ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Case {r.testCase}</span>
                               </div>
-                              <span className={`text-[10px] font-bold ${r.passed ? 'text-emerald-600' : 'text-rose-600'}`}>{r.time}ms</span>
+                              <span className={`text-[10px] font-bold ${r.passed ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {r.time}ms{r.memory ? ` | ${r.memory}KB` : ''}
+                              </span>
                             </div>
                             {!r.passed && r.input !== undefined && (
                               <div className="mt-4 space-y-3 border-t border-slate-200 pt-4 font-mono text-[10px] text-slate-500">

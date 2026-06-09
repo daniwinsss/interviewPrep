@@ -1,287 +1,206 @@
-import { exec } from 'child_process';
-import { writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
-import path from 'path';
-import os from 'os';
-import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
 
-const DEFAULT_PISTON_ENDPOINTS = [];
+const LANGUAGE_MAP = {
+  cpp: 54,
+  java: 62,
+  python: 71
+};
 
-function normalizePistonEndpoint(url) {
-  if (!url) return null;
+const JUDGE0_QUEUE_STATUSES = new Set([1, 2]);
+const DEFAULT_POLL_INTERVAL_MS = 800;
+const DEFAULT_POLL_TIMEOUT_MS = 30000;
 
-  const trimmed = url.trim().replace(/\/+$/, '');
-  if (!trimmed) return null;
-  if (/\/api\/v2\/piston\/execute$/i.test(trimmed)) return trimmed;
-  if (/\/api\/v2\/execute$/i.test(trimmed)) {
-    return trimmed.replace(/\/api\/v2\/execute$/i, '/api/v2/piston/execute');
-  }
-
-  return `${trimmed}/api/v2/piston/execute`;
+function normalizeJudge0BaseUrl(url = '') {
+  return url.trim().replace(/\/+$/, '');
 }
 
-/**
- * Local execution service for Java, Python, and C++.
- * Uses system-installed compilers/interpreters — no Docker required.
- * Falls back to a configured Piston API if local compilers/interpreters are not found on the system.
- * 
- * Prerequisites:
- *   - Python: python3 or python must be on PATH
- *   - Java:   java + javac must be on PATH (JDK installed)
- *   - C++:    g++ must be on PATH (GCC/MinGW on Windows)
- */
+function getJudge0Config() {
+  const apiUrl = normalizeJudge0BaseUrl(process.env.JUDGE0_API_URL || '');
+  if (!apiUrl) {
+    throw new Error('JUDGE0_API_URL is not configured');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json'
+  };
+
+  if (process.env.JUDGE0_API_KEY) {
+    headers['X-RapidAPI-Key'] = process.env.JUDGE0_API_KEY;
+  }
+
+  if (process.env.JUDGE0_API_HOST) {
+    headers['X-RapidAPI-Host'] = process.env.JUDGE0_API_HOST;
+  }
+
+  return { apiUrl, headers };
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function parseTimeMs(time) {
+  const seconds = Number.parseFloat(time);
+  return Number.isFinite(seconds) ? Math.round(seconds * 1000) : 0;
+}
+
+function mapJudge0Status(submission) {
+  const statusId = submission?.status?.id;
+  const description = submission?.status?.description || 'Unknown';
+
+  if (statusId === 3) return { status: 'success', error: null, description };
+  if (statusId === 5) return { status: 'tle', error: 'Time Limit Exceeded', description };
+  if (statusId === 6) return { status: 'compilation_error', error: 'Compilation Error', description };
+  if (description.toLowerCase().includes('memory')) {
+    return { status: 'mle', error: 'Memory Limit Exceeded', description };
+  }
+  if (statusId >= 7 && statusId <= 12) {
+    return { status: 'runtime_error', error: 'Runtime Error', description };
+  }
+
+  return { status: 'error', error: description, description };
+}
+
+function formatProviderError(err) {
+  const status = err?.response?.status;
+  const providerMessage = err?.response?.data?.message || err?.response?.data?.error || err.message;
+  return status ? `Judge0 API failed (HTTP ${status}): ${providerMessage}` : `Judge0 API failed: ${providerMessage}`;
+}
+
+async function createSubmission({ code, language, stdin, timeoutMs, memoryLimitMb }) {
+  const { apiUrl, headers } = getJudge0Config();
+  const languageId = LANGUAGE_MAP[language];
+
+  if (!languageId) {
+    return {
+      error: 'Unsupported language',
+      status: 'error'
+    };
+  }
+
+  const response = await axios.post(
+    `${apiUrl}/submissions`,
+    {
+      source_code: code,
+      language_id: languageId,
+      stdin,
+      cpu_time_limit: Math.max((timeoutMs || 3000) / 1000, 1),
+      wall_time_limit: Math.max((timeoutMs || 3000) / 1000 + 2, 3),
+      memory_limit: Math.max(memoryLimitMb || 256, 16) * 1024
+    },
+    {
+      headers,
+      params: {
+        base64_encoded: false,
+        wait: false
+      },
+      timeout: 15000
+    }
+  );
+
+  return response.data;
+}
+
+async function getSubmission(token) {
+  const { apiUrl, headers } = getJudge0Config();
+  const response = await axios.get(`${apiUrl}/submissions/${token}`, {
+    headers,
+    params: {
+      base64_encoded: false,
+      fields: 'stdout,stderr,compile_output,message,time,memory,status,token'
+    },
+    timeout: 15000
+  });
+
+  return response.data;
+}
+
+async function pollSubmission(token, pollTimeoutMs = DEFAULT_POLL_TIMEOUT_MS) {
+  const startedAt = Date.now();
+
+  while (Date.now() - startedAt < pollTimeoutMs) {
+    const submission = await getSubmission(token);
+    const statusId = submission?.status?.id;
+
+    if (!JUDGE0_QUEUE_STATUSES.has(statusId)) {
+      return submission;
+    }
+
+    await sleep(DEFAULT_POLL_INTERVAL_MS);
+  }
+
+  return {
+    stdout: '',
+    stderr: 'Execution polling timed out before Judge0 returned a final result.',
+    compile_output: null,
+    message: null,
+    time: null,
+    memory: null,
+    status: {
+      id: 5,
+      description: 'Time Limit Exceeded'
+    },
+    token
+  };
+}
+
+function normalizeResult(submission) {
+  const mapped = mapJudge0Status(submission);
+  const compileOutput = submission.compile_output || '';
+  const stderr = submission.stderr || submission.message || compileOutput || '';
+
+  return {
+    stdout: submission.stdout || '',
+    stderr,
+    compile_output: compileOutput,
+    error: mapped.error,
+    status: mapped.status,
+    judgeStatus: mapped.description,
+    time: parseTimeMs(submission.time),
+    memory: submission.memory || 0
+  };
+}
+
 export const executionService = {
-  async runCode({ code, language, stdin = '', timeoutMs = 3000 }) {
-    const id = uuidv4().replace(/-/g, '');
-    const tmpDir = path.join(os.tmpdir(), `usaco_${id}`);
+  async runCode({ code, language, stdin = '', timeoutMs = 3000, memoryLimitMb = 256 }) {
+    if (!code || !language) {
+      return {
+        stdout: '',
+        stderr: 'code and language are required',
+        compile_output: '',
+        error: 'Invalid submission',
+        status: 'error',
+        time: 0,
+        memory: 0
+      };
+    }
 
     try {
-      mkdirSync(tmpDir, { recursive: true });
-
-      let result;
-      switch (language) {
-        case 'python':
-          result = await runPython(code, stdin, tmpDir, timeoutMs);
-          break;
-        case 'java':
-          result = await runJava(code, stdin, tmpDir, timeoutMs);
-          break;
-        case 'cpp':
-          result = await runCpp(code, stdin, tmpDir, timeoutMs);
-          break;
-        default:
-          result = { stdout: '', stderr: 'Unsupported language', error: 'Unsupported language', status: 'error', time: 0 };
+      const created = await createSubmission({ code, language, stdin, timeoutMs, memoryLimitMb });
+      if (created.error || !created.token) {
+        return {
+          stdout: '',
+          stderr: created.error || 'Judge0 did not return a submission token',
+          compile_output: '',
+          error: 'Execution Error',
+          status: 'error',
+          time: 0,
+          memory: 0
+        };
       }
 
-      // Check if local execution failed because compilers/interpreters are missing
-      const isMissingCompiler = result.status === 'error' && (
-        (result.stderr && (
-          result.stderr.toLowerCase().includes('not found') ||
-          result.stderr.toLowerCase().includes('not recognized') ||
-          result.stderr.toLowerCase().includes('command not found')
-        )) ||
-        (result.error && (
-          result.error.toLowerCase().includes('enoent') ||
-          result.error.toLowerCase().includes('not found') ||
-          result.error.toLowerCase().includes('not recognized') ||
-          result.error.toLowerCase().includes('command not found')
-        ))
-      );
-
-      if (isMissingCompiler) {
-        console.log(`Local compiler/interpreter missing for ${language}. Checking configured Piston fallback...`);
-        return await runCodeViaPiston(code, language, stdin, timeoutMs);
-      }
-
-      return result;
+      const submission = await pollSubmission(created.token, Math.max(timeoutMs + 10000, DEFAULT_POLL_TIMEOUT_MS));
+      return normalizeResult(submission);
     } catch (err) {
-      console.log(`Local execution failed with system error: ${err.message}. Checking configured Piston fallback...`);
-      return await runCodeViaPiston(code, language, stdin, timeoutMs);
-    } finally {
-      // Clean up temp directory
-      try { rmSync(tmpDir, { recursive: true, force: true }); } catch (_) { }
+      return {
+        stdout: '',
+        stderr: formatProviderError(err),
+        compile_output: '',
+        error: 'Execution Error',
+        status: 'error',
+        time: 0,
+        memory: 0
+      };
     }
   }
 };
-
-async function runCodeViaPiston(code, language, stdin = '', timeoutMs = 3000) {
-  try {
-    const classNameMatch = code.match(/public\s+class\s+(\w+)/);
-    const className = classNameMatch ? classNameMatch[1] : 'Main';
-
-    const langMap = {
-      cpp: 'cpp',
-      java: 'java',
-      python: 'python'
-    };
-
-    const fileNames = {
-      cpp: 'solution.cpp',
-      java: `${className}.java`,
-      python: 'solution.py'
-    };
-
-    const pistonLang = langMap[language] || language;
-    const fileName = fileNames[language] || 'solution';
-
-    const pistonUrl = normalizePistonEndpoint(process.env.PISTON_API_URL);
-    const endpoints = [
-      ...(pistonUrl ? [pistonUrl] : []),
-      ...DEFAULT_PISTON_ENDPOINTS
-    ].filter((url, index, urls) => url && urls.indexOf(url) === index);
-
-    if (endpoints.length === 0) {
-      return {
-        stdout: '',
-        stderr: 'Local compiler/interpreter is not available on this server, and no PISTON_API_URL is configured. Install the required compiler on the server or set PISTON_API_URL to a self-hosted Piston instance.',
-        error: 'Execution Provider Unavailable',
-        status: 'error',
-        time: 0
-      };
-    }
-
-    const requestBody = {
-      language: pistonLang,
-      version: '*',
-      files: [
-        {
-          name: fileName,
-          content: code
-        }
-      ],
-      stdin: stdin,
-      run_timeout: timeoutMs,
-      compile_timeout: 10000
-    };
-
-    const startTime = Date.now();
-    let response = null;
-    let lastError = null;
-
-    for (let i = 0; i < endpoints.length; i++) {
-      const endpoint = endpoints[i];
-      try {
-        response = await axios.post(endpoint, requestBody, {
-          timeout: Math.max(timeoutMs + 2000, 15000)
-        });
-        lastError = null;
-        break;
-      } catch (err) {
-        lastError = err;
-        const status = err?.response?.status;
-        console.warn(`Piston endpoint failed: ${endpoint}${status ? ` (HTTP ${status})` : ''}`);
-      }
-    }
-
-    if (!response && lastError) {
-      throw lastError;
-    }
-
-    const elapsed = Date.now() - startTime;
-    const data = response.data;
-
-    // Check compilation errors
-    if (data.compile && data.compile.code !== 0) {
-      return {
-        stdout: data.compile.stdout || '',
-        stderr: `Compilation Error:\n${data.compile.stderr || data.compile.output || ''}`,
-        error: 'Compilation Error',
-        status: 'error',
-        time: 0
-      };
-    }
-
-    const runResult = data.run || {};
-    const stdout = runResult.stdout || '';
-    const stderr = runResult.stderr || '';
-
-    if (runResult.code !== 0) {
-      return {
-        stdout,
-        stderr,
-        error: runResult.signal === 'SIGKILL' ? 'Time Limit Exceeded' : 'Runtime Error',
-        status: runResult.signal === 'SIGKILL' ? 'tle' : 'error',
-        time: Math.min(elapsed, timeoutMs)
-      };
-    }
-
-    return {
-      stdout,
-      stderr,
-      error: null,
-      status: 'success',
-      time: Math.min(elapsed, timeoutMs)
-    };
-  } catch (err) {
-    const status = err?.response?.status;
-    const statusSuffix = status ? ` (HTTP ${status})` : '';
-    const message = status === 401 || status === 403
-      ? 'Unauthorized by execution provider. Check PISTON_API_URL or endpoint access settings.'
-      : err.message;
-
-    return {
-      stdout: '',
-      stderr: `Piston execution failed${statusSuffix}: ${message}`,
-      error: 'Execution Error',
-      status: 'error',
-      time: 0
-    };
-  }
-}
-
-
-function runCommand(cmd, stdin, timeoutMs) {
-  return new Promise((resolve) => {
-    const start = Date.now();
-    const child = exec(cmd, { timeout: timeoutMs, maxBuffer: 1024 * 1024 }, (error, stdout, stderr) => {
-      const time = Date.now() - start;
-      if (error && error.killed) {
-        resolve({ stdout, stderr: 'Time Limit Exceeded', error: 'TLE', status: 'tle', time });
-      } else if (error) {
-        resolve({ stdout, stderr, error: error.message, status: 'error', time });
-      } else {
-        resolve({ stdout, stderr, error: null, status: 'success', time });
-      }
-    });
-
-    if (stdin && child.stdin) {
-      child.stdin.write(stdin);
-      child.stdin.end();
-    }
-  });
-}
-
-async function runPython(code, stdin, tmpDir, timeoutMs) {
-  const filePath = path.join(tmpDir, 'solution.py');
-  writeFileSync(filePath, code, 'utf-8');
-
-  // Try python3 first, fall back to python
-  const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-  const cmd = `${pythonCmd} "${filePath}"`;
-  return runCommand(cmd, stdin, timeoutMs);
-}
-
-async function runJava(code, stdin, tmpDir, timeoutMs) {
-  // Extract the public class name from the code, defaulting to Main
-  const classNameMatch = code.match(/public\s+class\s+(\w+)/);
-  const className = classNameMatch ? classNameMatch[1] : 'Main';
-
-  const filePath = path.join(tmpDir, `${className}.java`);
-  writeFileSync(filePath, code, 'utf-8');
-
-  // Step 1: Compile
-  const compileResult = await runCommand(`javac "${filePath}"`, '', 15000);
-  if (compileResult.status === 'error') {
-    return {
-      ...compileResult,
-      error: 'Compilation Error',
-      status: 'error',
-      stderr: `Compilation Error:\n${compileResult.stderr}`
-    };
-  }
-
-  // Step 2: Run with memory limit and security policy
-  const runCmd = `java -cp "${tmpDir}" -Xmx256m -Xss64m ${className}`;
-  return runCommand(runCmd, stdin, timeoutMs);
-}
-
-async function runCpp(code, stdin, tmpDir, timeoutMs) {
-  const srcPath = path.join(tmpDir, 'solution.cpp');
-  const exePath = path.join(tmpDir, process.platform === 'win32' ? 'solution.exe' : 'solution');
-  writeFileSync(srcPath, code, 'utf-8');
-
-  // Step 1: Compile
-  const compileResult = await runCommand(`g++ -O2 -o "${exePath}" "${srcPath}"`, '', 15000);
-  if (compileResult.status === 'error') {
-    return {
-      ...compileResult,
-      error: 'Compilation Error',
-      status: 'error',
-      stderr: `Compilation Error:\n${compileResult.stderr}`
-    };
-  }
-
-  // Step 2: Run
-  const runCmd = `"${exePath}"`;
-  return runCommand(runCmd, stdin, timeoutMs);
-}
